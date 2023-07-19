@@ -39,6 +39,8 @@ class TextAutoGreeting {
     let font_array = '𝓐𝓑𝓒𝓓𝓔𝓕𝓖𝓗𝓘𝓙𝓚𝓛𝓜𝓝𝓞𝓟𝓠𝓡𝓢𝓣𝓤𝓥𝓦𝓧𝓨𝓩𝓪𝓫𝓬𝓭𝓮𝓯𝓰𝓱𝓲𝓳𝓴𝓵𝓶𝓷𝓸𝓹𝓺𝓻𝓼𝓽𝓾𝓿𝔀𝔁𝔂𝔃'
     let njoy_emojis = new Map([['#test#', 'https://forumstatic.oneplusmobile.com/opforum-gl/upload/image/app/thread/20230204/2780603194562714301/1258923422265114625/1258923422265114625.gif']])
     let giphy_url = "https://giphy.com/gifs/"
+    let IMAGE_MAX_WIDTH = 250
+    let IMAGE_MAX_HEIGHT = 250
     let macros = load_text_macros()
     let auto_greetings = load_auto_greetings()
     let observed_chat_outputs = []
@@ -617,7 +619,7 @@ class TextAutoGreeting {
                             new_node.appendChild(childChildNode.cloneNode(true))
                         } else {
                             let possible_emoji_children = check_for_njoy_emojis(childChildNode.nodeValue)
-                            for (let possible_child of possible_emoji_children){
+                            for (let possible_child of possible_emoji_children) {
                                 console.log(possible_child)
                                 new_node.appendChild(possible_child)
                             }
@@ -651,10 +653,10 @@ class TextAutoGreeting {
 
     function create_njoy_emoji(emoji_descriptor) {
         let emoji_link
-        if (emoji_descriptor.startsWith('#giphy#')){
+        if (emoji_descriptor.startsWith('#giphy#')) {
             let emoji_giphy_short_link = emoji_descriptor.split('#giphy#')[1].slice(0, -1)
             emoji_link = giphy_url + emoji_giphy_short_link
-        } else if (emoji_descriptor.startsWith('#img#')){
+        } else if (emoji_descriptor.startsWith('#img#')) {
             emoji_link = emoji_descriptor.split('#img#')[1].slice(0, -1)
         } else {
             emoji_link = njoy_emojis.get(emoji_descriptor)
@@ -666,12 +668,39 @@ class TextAutoGreeting {
             emoji_img.setAttribute('src', emoji_link)
             emoji_img.setAttribute('title', emoji_descriptor)
             emoji_img.setAttribute('alt', emoji_descriptor)
+            emoji_img.onload = function(){resizeImage(this)}
             let emoji_alt_span = document.createElement('span')
             emoji_alt_span.innerText = emoji_descriptor
             emoji_span.appendChild(emoji_img)
             emoji_span.appendChild(emoji_alt_span)
             return emoji_span
         }
+    }
+
+    function resizeImage(image_node) {
+        console.log('width', image_node.width, 'height', image_node.height)
+        console.log('parsed width', parseFloat(image_node.width), 'parsed height', parseFloat(image_node.height))
+        let dimensions = calculateAspectRatioFit(parseFloat(image_node.width), parseFloat(image_node.height), IMAGE_MAX_WIDTH, IMAGE_MAX_HEIGHT)
+        image_node.style.height = dimensions.height.toString()
+        image_node.style.width = dimensions.width.toString()
+        image_node.setAttribute('height', dimensions.height.toString())
+        image_node.setAttribute('width', dimensions.width.toString())
+    }
+
+    /**
+     * Conserve aspect ratio of the original region. Useful when shrinking/enlarging
+     * images to fit into a certain area.
+     *
+     * @param {Number} srcWidth width of source image
+     * @param {Number} srcHeight height of source image
+     * @param {Number} maxWidth maximum available width
+     * @param {Number} maxHeight maximum available height
+     * @return {Object} { width, height }
+     */
+    function calculateAspectRatioFit(srcWidth, srcHeight, maxWidth, maxHeight) {
+        let ratio = Math.min(maxWidth / srcWidth, maxHeight / srcHeight);
+        console.log('srcWidth:', srcWidth, 'srcHeight:', srcHeight, 'maxWidth', maxWidth, 'maxHeight', maxHeight, 'ratio', ratio)
+        return {width: Math.floor(srcWidth * ratio), height: Math.floor(srcHeight * ratio)};
     }
 
     function handle_chat_message_removal(removedNodes) {
