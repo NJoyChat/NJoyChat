@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         NJoyChat
 // @namespace    https://www.joyclub.de/chat/login/
-// @version      Alpha-v1.1
+// @version      Alpha-v1.2
 // @downloadURL  https://raw.githubusercontent.com/NJoyChat/NJoyChat/master/NJoyChat.js
 // @updateURL    https://raw.githubusercontent.com/NJoyChat/NJoyChat/master/NJoyChat.js
 // @description  Improves JoyChat with additional utilities.
@@ -650,7 +650,7 @@ class TextAutoGreeting {
     }
 
     function create_njoy_emoji(emoji_descriptor) {
-        let emoji_link = undefined
+        let emoji_link
         if (emoji_descriptor.startsWith('#giphy#')){
             let emoji_giphy_short_link = emoji_descriptor.split('#giphy#')[1].slice(0, -1)
             emoji_link = giphy_url + emoji_giphy_short_link
