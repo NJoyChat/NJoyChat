@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         NJoyChat
 // @namespace    https://www.joyclub.de/chat/login/
-// @version      Alpha-v4
+// @version      Alpha-v5
 // @downloadURL  https://raw.githubusercontent.com/NJoyChat/NJoyChat/master/NJoyChat.js
 // @updateURL    https://raw.githubusercontent.com/NJoyChat/NJoyChat/master/NJoyChat.js
 // @description  Improves JoyChat with additional utilities.
@@ -10,6 +10,7 @@
 // @icon         data:image/gif;base64,R0lGODlhAQABAAAAACH5BAEKAAEALAAAAAABAAEAAAICTAEAOw==
 // @grant        GM.getValue
 // @grant        GM.setValue
+// @grant        GM.addStyle
 // @require      https://ajax.googleapis.com/ajax/libs/jquery/3.6.1/jquery.min.js
 // @require      https://gist.github.com/raw/2625891/waitForKeyElements.js
 // @require      https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.2/gsap.min.js
@@ -40,8 +41,14 @@ class TextAutoGreeting {
     }
 }
 
+
+
 (function () {
     'use strict';
+
+    GM.addStyle(".nj-button__content {text-align: center; font-size: 14px; font-weight: bold; padding: 8px 24px; font-family: JC-ProximaNovaSoft, Verdana, Arial, Helvetica, sans-serif; align-items: center; line-height: 1;}");
+    GM.addStyle(".nsecondary {background: #45484a; color: #f1f1f1; border-color: #515455;}");
+    GM.addStyle(".nj-button {white-space: nowrap; cursor: pointer; box-sizing: border-box; border: 2px; border-radius: 8px;}")
 
     gsap.registerPlugin(ScrollTrigger)
     gsap.registerPlugin(TextPlugin)
@@ -68,7 +75,7 @@ class TextAutoGreeting {
         let toolbar = document.querySelectorAll('.toolbar')[0]
         if (toolbar !== null) {
             create_container_divs()
-            create_animation_buttons()
+            //create_animation_buttons()
             create_function_buttons()
             create_macro_admin_buttons()
             create_auto_greeting_admin_buttons()
@@ -179,19 +186,19 @@ class TextAutoGreeting {
     function create_function_buttons() {
         let conversion_button = document.createElement('button')
         conversion_button.innerText = 'Convert to custom font.'
-        conversion_button.setAttribute('class', " j-button__content ")
+        conversion_button.setAttribute('class', " nj-button__content nsecondary nj-button")
         conversion_button.addEventListener("click", convert_editor_to_custom_font)
         conversion_button.id = 'test_button_for_me'
         document.getElementById('njoy_function_buttons_container').appendChild(conversion_button)
         let show_macro_admin_button = document.createElement('button')
         show_macro_admin_button.innerText = 'Toggle Macro Admin.'
-        show_macro_admin_button.setAttribute('class', " j-button__content ")
+        show_macro_admin_button.setAttribute('class', " nj-button__content nsecondary nj-button")
         show_macro_admin_button.addEventListener("click", toggle_macro_admin_container_visibility)
         show_macro_admin_button.id = 'toggle_macro_admin_button'
         document.getElementById('njoy_function_buttons_container').appendChild(show_macro_admin_button)
         let show_auto_greet_admin_button = document.createElement('button')
         show_auto_greet_admin_button.innerText = 'Toggle Auto-greet Admin.'
-        show_auto_greet_admin_button.setAttribute('class', " j-button__content ")
+        show_auto_greet_admin_button.setAttribute('class', " nj-button__content nsecondary nj-button")
         show_auto_greet_admin_button.addEventListener("click", toggle_auto_greet_admin_container_visibility)
         show_auto_greet_admin_button.id = 'toggle_auto_greet_admin_button'
         document.getElementById('njoy_function_buttons_container').appendChild(show_auto_greet_admin_button)
@@ -385,7 +392,9 @@ class TextAutoGreeting {
     function add_button(macro, custom_onclick) {
         let macro_button = document.createElement('button')
         macro_button.innerText = macro.name
-        macro_button.setAttribute('class', " j-button__content ")
+        macro_button.setAttribute('class', " nj-button__content ")
+        macro_button.classList.add('nsecondary')
+        macro_button.classList.add('nj-button')
         console.log("Adding button for macro:")
         console.log(macro)
         console.log("Custom onclick:")
@@ -877,7 +886,7 @@ class TextAutoGreeting {
         let t1 = gsap.timeline({repeat: -1, yoyo: true})
             .to(words, {
                 red: 255,
-                duration: 125,
+                duration: 5,
                 modifiers: {
                     red: function (x) {
                         for (let i = 0; i < total; i++) {
