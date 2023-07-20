@@ -215,9 +215,9 @@ class TextAutoGreeting {
         macro_name_input.id = "macro_name_input"
         document.getElementById('njoy_macro_admin_buttons_container').appendChild(add_button(macro_save_button, true))
         document.getElementById('macro_button_-1').addEventListener('click', save_macro)
-        document.getElementById('njoy_macro_admin_buttons_container').appendChild(add_button(macro_load_button, false))
+        document.getElementById('njoy_macro_admin_buttons_container').appendChild(add_button(macro_load_button, true))
         document.getElementById('macro_button_-2').addEventListener('click', load_macro)
-        document.getElementById('njoy_macro_admin_buttons_container').appendChild(add_button(macro_delete_button, false))
+        document.getElementById('njoy_macro_admin_buttons_container').appendChild(add_button(macro_delete_button, true))
         document.getElementById('macro_button_-3').addEventListener('click', delete_macro)
         document.getElementById('njoy_macro_admin_buttons_container').appendChild(macro_name_input)
     }
