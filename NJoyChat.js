@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         NJoyChat
 // @namespace    https://www.joyclub.de/chat/login/
-// @version      Alpha-v5
+// @version      Alpha-v6
 // @downloadURL  https://raw.githubusercontent.com/NJoyChat/NJoyChat/master/NJoyChat.js
 // @updateURL    https://raw.githubusercontent.com/NJoyChat/NJoyChat/master/NJoyChat.js
 // @description  Improves JoyChat with additional utilities.
@@ -46,9 +46,10 @@ class TextAutoGreeting {
 (function () {
     'use strict';
 
-    GM.addStyle(".nj-button__content {text-align: center; font-size: 14px; font-weight: bold; padding: 8px 24px; margin: 2px 2px 4px 2px; font-family: JC-ProximaNovaSoft, Verdana, Arial, Helvetica, sans-serif; align-items: center; line-height: 1;}");
+    GM.addStyle(".nj-button__content {text-align: center; font-size: 14px; font-weight: bold; padding: 8px 24px; margin: 2px 2px 2px 2px; font-family: JC-ProximaNovaSoft, Verdana, Arial, Helvetica, sans-serif; align-items: center; line-height: 1;}");
     GM.addStyle(".nsecondary {background: #45484a; color: #f1f1f1; border-color: #515455;}");
     GM.addStyle(".nj-button {white-space: nowrap; cursor: pointer; box-sizing: border-box; border: 2px; border-radius: 8px;}")
+    GM.addStyle(".nj-focus {z-index: 9999; position: absolute; backdrop-filter: blur(2px); width: 100%; height: 100%;}")
 
     gsap.registerPlugin(ScrollTrigger)
     gsap.registerPlugin(TextPlugin)
@@ -58,7 +59,7 @@ class TextAutoGreeting {
     let IMAGE_MAX_WIDTH = 250
     let IMAGE_MAX_HEIGHT = 250
     let freq = Math.PI * 2 / 100; // TODO Possibly make this global or a config value?
-    let config_values = [1337, 69, 420]
+    let config_values = [69, 420, 1337]
     let macros = load_text_macros()
     let auto_greetings = load_auto_greetings()
     let observed_chat_outputs = []
@@ -103,6 +104,7 @@ class TextAutoGreeting {
 
     function create_container_divs() {
         let parent_container = document.createElement('div')
+        parent_container.style.marginBottom = "6px"
         parent_container.id = "njoy_parent_container"
         let function_buttons_container = document.createElement('div')
         function_buttons_container.id = "njoy_function_buttons_container"
@@ -147,8 +149,8 @@ class TextAutoGreeting {
         let auto_greeting_name_input = document.createElement('input')
         auto_greeting_name_input.id = "auto_greeting_name_input"
         let save_button = add_button(auto_greeting_save_button, true)
-        let load_button = add_button(auto_greeting_load_button, false)
-        let delete_button = add_button(auto_greeting_delete_button, false)
+        let load_button = add_button(auto_greeting_load_button, true)
+        let delete_button = add_button(auto_greeting_delete_button, true)
         save_button.id = 'auto_greeting_button_-1'
         load_button.id = 'auto_greeting_button_-2'
         delete_button.id = 'auto_greeting_button_-3'
@@ -664,13 +666,22 @@ class TextAutoGreeting {
                             new_node.appendChild(childChildNode.cloneNode(true))
                         } else {
                             let possible_emoji_children = check_for_njoy_emojis(childChildNode.nodeValue)
-                            for (let possible_child of possible_emoji_children) {
+                            for (let possible_child of possible_emoji_children[0]) {
                                 console.log(possible_child)
                                 if (possible_child.nodeType !== Node.TEXT_NODE) {
                                     new_node.appendChild(possible_child)
                                 } else {
                                     //new_node.appendChild(possible_child.nodeValue)
-                                    new_node.appendChild(make_text_sinebow(possible_child.nodeValue))
+                                    if (possible_emoji_children[1].length !== 0){
+                                        if (possible_emoji_children[1][0] === 69) {
+                                            new_node.appendChild(make_text_sinebow(possible_child.nodeValue))
+                                        } else {
+                                            new_node.appendChild(possible_child.nodeValue)
+                                        }
+                                    } else {
+                                        new_node.appendChild(possible_child.nodeValue)
+                                    }
+
                                 }
                             }
                         }
@@ -702,7 +713,7 @@ class TextAutoGreeting {
             }
         }
         result.push(document.createTextNode(converted_text))
-        return result
+        return [result, control_spaces]
     }
 
     function create_njoy_emoji(emoji_descriptor) {
