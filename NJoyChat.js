@@ -19,6 +19,10 @@
 // @run-at       document-idle
 // ==/UserScript==
 
+// NOTE: The DarkReader extension significantly messes with the performance. It implements "deepWatchForInlineStyles/attrObserver" which
+// will attempt to overwrite the modified animation messages with new colors (Rainbow text is really terrible for this.)
+// It is recommended to disable it on the site.
+
 class TextMacro {
     constructor(macro_id, name, macro_text) {
         this.macro_id = macro_id
@@ -569,7 +573,7 @@ class TextAutoGreeting {
                     var mutationObserver = new MutationObserver(callback)
 
                     // have the observer observe for changes in children
-                    mutationObserver.observe(obj, {childList: true, subtree: true})
+                    mutationObserver.observe(obj, {childList: true, subtree: false})
                     return mutationObserver
                 }
 
@@ -617,7 +621,9 @@ class TextAutoGreeting {
             // Set new class so later on, dom changes won't cause the observer to fire on our new chat.
             new_div.classList.add("njoy_emoji_chat")
             // Keep old class so we don't overwrite CSS
-            new_div.classList.add(addedNode.getAttribute("class"))
+            for (let old_class of addedNode.getAttribute("class").split(' ')) {
+                new_div.classList.add(old_class)
+            }
 
             let SAVED_BLOCK_DOM = [];
             console.log(addedNode.childNodes)
@@ -654,8 +660,8 @@ class TextAutoGreeting {
                                 if (possible_child.nodeType !== Node.TEXT_NODE) {
                                     new_node.appendChild(possible_child)
                                 } else {
-                                    new_node.appendChild(possible_child.nodeValue)
-                                    //new_node.appendChild(make_text_sinebow(possible_child.nodeValue))
+                                    //new_node.appendChild(possible_child.nodeValue)
+                                    new_node.appendChild(make_text_sinebow(possible_child.nodeValue))
                                 }
                             }
                         }
@@ -872,7 +878,6 @@ class TextAutoGreeting {
             .to(words, {
                 red: 255,
                 duration: 125,
-                ease: SlowMo.ease.config(0.1, 0.7, false),
                 modifiers: {
                     red: function (x) {
                         for (let i = 0; i < total; i++) {
