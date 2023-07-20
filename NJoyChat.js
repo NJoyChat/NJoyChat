@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         NJoyChat
 // @namespace    https://www.joyclub.de/chat/login/
-// @version      Alpha-v6
+// @version      Alpha-v7
 // @downloadURL  https://raw.githubusercontent.com/NJoyChat/NJoyChat/master/NJoyChat.js
 // @updateURL    https://raw.githubusercontent.com/NJoyChat/NJoyChat/master/NJoyChat.js
 // @description  Improves JoyChat with additional utilities.
@@ -58,6 +58,7 @@ class TextAutoGreeting {
     let giphy_url = "https://giphy.com/gifs/"
     let IMAGE_MAX_WIDTH = 250
     let IMAGE_MAX_HEIGHT = 250
+    let SCROLLBACK_BUFFER = 50
     let freq = Math.PI * 2 / 100; // TODO Possibly make this global or a config value?
     let config_values = [69, 420, 1337]
     let macros = load_text_macros()
@@ -602,7 +603,6 @@ class TextAutoGreeting {
                     var addedNodes = [], removedNodes = [];
                     m.forEach(record => record.addedNodes.length & addedNodes.push(...record.addedNodes))
                     m.forEach(record => record.removedNodes.length & removedNodes.push(...record.removedNodes))
-
                     let truly_new = []
                     for (let added_node of addedNodes) {
                         if (added_node.tagName === 'DIV' && !added_node.classList.contains('njoy_emoji_chat')) {
@@ -619,6 +619,9 @@ class TextAutoGreeting {
                     console.log('Added (chat):', addedNodes, ' Removed (chat): ', removedNodes)
                     handle_chat_message_addition(truly_new);
                     handle_chat_message_removal(truly_removed);
+                    if (m[0].target.children.length >= SCROLLBACK_BUFFER){
+                        m[0].target.removeChild(m[0].target.firstChild)
+                    }
                 });
                 observed_chat_outputs.push(joychat_output)
             }
@@ -676,10 +679,10 @@ class TextAutoGreeting {
                                         if (possible_emoji_children[1][0] === 69) {
                                             new_node.appendChild(make_text_sinebow(possible_child.nodeValue))
                                         } else {
-                                            new_node.appendChild(possible_child.nodeValue)
+                                            new_node.appendChild(possible_child)
                                         }
                                     } else {
-                                        new_node.appendChild(possible_child.nodeValue)
+                                        new_node.appendChild(possible_child)
                                     }
 
                                 }
