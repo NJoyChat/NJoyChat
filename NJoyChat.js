@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         NJoyChat
 // @namespace    https://www.joyclub.de/chat/login/
-// @version      Alpha-v3
+// @version      Alpha-v4
 // @downloadURL  https://raw.githubusercontent.com/NJoyChat/NJoyChat/master/NJoyChat.js
 // @updateURL    https://raw.githubusercontent.com/NJoyChat/NJoyChat/master/NJoyChat.js
 // @description  Improves JoyChat with additional utilities.
@@ -654,7 +654,8 @@ class TextAutoGreeting {
                                 if (possible_child.nodeType !== Node.TEXT_NODE) {
                                     new_node.appendChild(possible_child)
                                 } else {
-                                    new_node.appendChild(make_text_sinebow(possible_child.nodeValue))
+                                    new_node.appendChild(possible_child.nodeValue)
+                                    //new_node.appendChild(make_text_sinebow(possible_child.nodeValue))
                                 }
                             }
                         }
@@ -867,11 +868,10 @@ class TextAutoGreeting {
         let words = split.reduce(wrapText, container_div);
         let chars = words.children;
         let total = words.children.length;
-        let t1 = gsap.timeline({repeat: -1})
-            .set(words, {red: 0})
+        let t1 = gsap.timeline({repeat: -1, yoyo: true})
             .to(words, {
                 red: 255,
-                duration: 10,
+                duration: 125,
                 ease: SlowMo.ease.config(0.1, 0.7, false),
                 modifiers: {
                     red: function (x) {
