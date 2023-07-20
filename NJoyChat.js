@@ -12,6 +12,10 @@
 // @grant        GM.setValue
 // @require      https://ajax.googleapis.com/ajax/libs/jquery/3.6.1/jquery.min.js
 // @require      https://gist.github.com/raw/2625891/waitForKeyElements.js
+// @require      https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.2/gsap.min.js
+// @require      https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.2/ScrollTrigger.min.js
+// @require      https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.2/TextPlugin.min.js
+// @require      https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.2/EasePack.min.js
 // @run-at       document-idle
 // ==/UserScript==
 
@@ -35,32 +39,55 @@ class TextAutoGreeting {
 (function () {
     'use strict';
 
-
+    gsap.registerPlugin(ScrollTrigger)
+    gsap.registerPlugin(TextPlugin)
     let font_array = '𝓐𝓑𝓒𝓓𝓔𝓕𝓖𝓗𝓘𝓙𝓚𝓛𝓜𝓝𝓞𝓟𝓠𝓡𝓢𝓣𝓤𝓥𝓦𝓧𝓨𝓩𝓪𝓫𝓬𝓭𝓮𝓯𝓰𝓱𝓲𝓳𝓴𝓵𝓶𝓷𝓸𝓹𝓺𝓻𝓼𝓽𝓾𝓿𝔀𝔁𝔂𝔃'
     let njoy_emojis = new Map([['#test#', 'https://forumstatic.oneplusmobile.com/opforum-gl/upload/image/app/thread/20230204/2780603194562714301/1258923422265114625/1258923422265114625.gif']])
     let giphy_url = "https://giphy.com/gifs/"
     let IMAGE_MAX_WIDTH = 250
     let IMAGE_MAX_HEIGHT = 250
+    let freq = Math.PI * 2 / 100; // TODO Possibly make this global or a config value?
+    let config_values = [1337, 69, 420]
     let macros = load_text_macros()
     let auto_greetings = load_auto_greetings()
     let observed_chat_outputs = []
+    let observed_j_buttons = []
     let users = new Map()
 
     waitForKeyElements(".toolbar", start_running)
     waitForKeyElements("ul.userlist:nth-child(3)", watch_user_list_for_change)
     waitForKeyElements(".joychat_output", watch_chat_output_for_change)
-
-    //start_running()
+    waitForKeyElements(".send", watch_for_send_button_submit)
 
     function start_running() {
         console.log('Test. Ich weiß, was ich tue, und das hier ist in keinster Art und Weise bösartig. Bitte kontaktieren Sie mich, falls meine Aktivitäten zu Problemen führen.')
         let toolbar = document.querySelectorAll('.toolbar')[0]
         if (toolbar !== null) {
             create_container_divs()
+            create_animation_buttons()
             create_function_buttons()
             create_macro_admin_buttons()
             create_auto_greeting_admin_buttons()
+            watch_for_textarea_submit()
         }
+    }
+
+    function create_animation_buttons() {
+        let container_div = document.getElementById('njoy_animation_buttons_container')
+        let button = document.createElement('button')
+
+        button.innerText = "GSAP Animation"
+        button.setAttribute('class', " j-button__content ")
+
+        button.addEventListener('click', function () {
+            let t1 = gsap.timeline({repeat: -1})
+            .set(button, {x: 750})
+            .to(button, {
+                x: 1000,
+                duration: 5,
+            });
+        })
+        container_div.appendChild(button)
     }
 
     function create_container_divs() {
@@ -68,6 +95,8 @@ class TextAutoGreeting {
         parent_container.id = "njoy_parent_container"
         let function_buttons_container = document.createElement('div')
         function_buttons_container.id = "njoy_function_buttons_container"
+        let animation_buttons_container = document.createElement('div')
+        animation_buttons_container.id = "njoy_animation_buttons_container"
         let macro_admin_buttons_container = document.createElement('div')
         macro_admin_buttons_container.id = "njoy_macro_admin_buttons_container"
         macro_admin_buttons_container.hidden = true
@@ -80,6 +109,7 @@ class TextAutoGreeting {
         auto_greet_buttons_container.id = "njoy_auto_greet_buttons_container"
         auto_greet_buttons_container.hidden = true
 
+        parent_container.appendChild(animation_buttons_container)
         parent_container.appendChild(function_buttons_container)
         parent_container.appendChild(macro_admin_buttons_container)
         parent_container.appendChild(macro_buttons_container)
@@ -621,7 +651,11 @@ class TextAutoGreeting {
                             let possible_emoji_children = check_for_njoy_emojis(childChildNode.nodeValue)
                             for (let possible_child of possible_emoji_children) {
                                 console.log(possible_child)
-                                new_node.appendChild(possible_child)
+                                if (possible_child.nodeType !== Node.TEXT_NODE) {
+                                    new_node.appendChild(possible_child)
+                                } else {
+                                    new_node.appendChild(make_text_sinebow(possible_child.nodeValue))
+                                }
                             }
                         }
                     }
@@ -636,6 +670,10 @@ class TextAutoGreeting {
 
     function check_for_njoy_emojis(text) {
         let result = []
+        let text_and_control_spaces = process_control_spaces(text)
+        text = text_and_control_spaces[0]
+        let control_spaces = text_and_control_spaces[1]
+        console.log('Control spaces...', control_spaces)
         let words = text.split(' ');
         let converted_text = '';
         for (let word_to_convert of words) {
@@ -668,7 +706,9 @@ class TextAutoGreeting {
             emoji_img.setAttribute('src', emoji_link)
             emoji_img.setAttribute('title', emoji_descriptor)
             emoji_img.setAttribute('alt', emoji_descriptor)
-            emoji_img.onload = function(){resizeImage(this)}
+            emoji_img.onload = function () {
+                resizeImage(this)
+            }
             let emoji_alt_span = document.createElement('span')
             emoji_alt_span.innerText = emoji_descriptor
             emoji_span.appendChild(emoji_img)
@@ -705,6 +745,196 @@ class TextAutoGreeting {
 
     function handle_chat_message_removal(removedNodes) {
         console.log('lol lmao')
+    }
+
+    let zero_control_space = 8203
+    let one_control_space = 8204
+    let control_space_start_character = 8239
+    let control_space_separator_character = 8205
+
+    function process_control_spaces(message) {
+        console.log(message)
+        if (message.endsWith(' ')) {
+            message = message.slice(0, -1)
+        }
+        console.log(message.length)
+        console.log('charcodes...')
+        for (let i = 0; i < message.length; i++) {
+            console.log(message.charCodeAt(i), message.charAt(i))
+        }
+        if (message.split(String.fromCharCode(control_space_start_character)).slice(-1)[0] !== undefined && message.split(String.fromCharCode(control_space_start_character)).length === 2) {
+            let all_control_spaces = split_control_spaces(get_control_space_from_message(message))
+            let converted_numbers = []
+            for (let control_spaces of all_control_spaces) {
+                converted_numbers.push(convert_control_spaces_to_numbers(control_spaces))
+            }
+            return [message.split(String.fromCharCode(control_space_start_character))[0], converted_numbers]
+        } else {
+            console.log("No control spaces found...")
+            return [message, []]
+        }
+    }
+
+    function get_control_space_from_message(message) {
+        return message.split(String.fromCharCode(control_space_start_character)).slice(-1)[0]
+    }
+
+    function split_control_spaces(all_control_spaces) {
+        return all_control_spaces.split(String.fromCharCode(control_space_separator_character))
+    }
+
+    function convert_control_spaces_to_numbers(control_spaces) {
+        let bitstring = ''
+        for (let i = 0; i < control_spaces.length; i++) {
+            if (control_spaces.charCodeAt(i) === zero_control_space) {
+                bitstring += '0'
+            } else if (control_spaces.charCodeAt(i) === one_control_space) {
+                bitstring += '1'
+            }
+        }
+        return parseInt(bitstring, 2)
+    }
+
+    function convert_number_array_to_control_spaces(numbers_to_convert) {
+        let control_space_strings = []
+        for (let number of numbers_to_convert) {
+            let number_string = number.toString(2)
+            control_space_strings.push(convert_number_to_control_spaces(number_string))
+        }
+        return control_space_strings
+    }
+
+    function convert_number_to_control_spaces(number_as_binary_string) {
+        let control_space_string = ''
+        for (let i = 0; i < number_as_binary_string.length; i++) {
+            if (number_as_binary_string.charAt(i) === '0') {
+                control_space_string += String.fromCharCode(zero_control_space)
+            } else if (number_as_binary_string.charAt(i) === '1') {
+                control_space_string += String.fromCharCode(one_control_space)
+            }
+        }
+        return control_space_string
+    }
+
+    function assign_control_spaces_to_values() {
+
+    }
+
+    function watch_for_textarea_submit() {
+        document.querySelectorAll('#joychat_input_text')[0].addEventListener("keydown", watch_for_textarea_enter_submit)
+
+    }
+
+    function watch_for_textarea_enter_submit(e) {
+        if (e.keyCode === 13) {
+            pre_submit_modifications()
+        }
+    }
+
+    function watch_for_send_button_submit() {
+        let j_buttons = document.querySelectorAll('.send')
+        for (let j_button of j_buttons) {
+            if (!observed_j_buttons.includes(j_button)) {
+                j_button.addEventListener('click', pre_submit_modifications, true)
+                observed_j_buttons.push(j_button)
+            }
+        }
+    }
+
+
+    function pre_submit_modifications() {
+        let control_spaces = convert_number_array_to_control_spaces(config_values)
+        let final_control_space_string = String.fromCharCode(control_space_start_character)
+        for (let control_space of control_spaces) {
+            final_control_space_string += control_space
+            final_control_space_string += String.fromCharCode(control_space_separator_character)
+        }
+        final_control_space_string = final_control_space_string.slice(0, -1)
+        console.log(document.querySelectorAll('#joychat_input_text')[0].value)
+        document.querySelectorAll('#joychat_input_text')[0].value += final_control_space_string
+        console.log(document.querySelectorAll('#joychat_input_text')[0].value)
+        console.log("Pre submit modifications done.")
+    }
+
+    // Utility Functions
+
+    function make_text_sinebow(text_to_rainbowify) {
+        let container_div = document.createElement('span')
+        container_div.setAttribute('class', 'rainbow')
+        container_div.style.red = 0
+        console.log(container_div)
+        let split = text_to_rainbowify.split("");
+        let words = split.reduce(wrapText, container_div);
+        let chars = words.children;
+        let total = words.children.length;
+        let t1 = gsap.timeline({repeat: -1})
+            .set(words, {red: 0})
+            .to(words, {
+                red: 255,
+                duration: 10,
+                ease: SlowMo.ease.config(0.1, 0.7, false),
+                modifiers: {
+                    red: function (x) {
+                        for (let i = 0; i < total; i++) {
+                            let index = i + 25 + x * 0.4;
+                            chars[i].style.color = sinebow(freq, freq, freq, 0, 2, 4, index);
+                        }
+                        return x;
+                    }
+                }
+            });
+            t1.play()
+        //setTimeout(animate, 2000, words, chars, total)
+        return container_div
+    }
+
+    function animate(words, chars, total){
+            console.log("Timeout triggered.")
+            console.log(words)
+            console.log(chars)
+            console.log(total)
+            let t1 = gsap.timeline({repeat: -1})
+            .set(words, {red: 0})
+            .to(words, {
+                red: 255,
+                duration: 5,
+                modifiers: {
+                    red: function (x) {
+                        console.log(x)
+                        for (let i = 0; i < total; i++) {
+                            let index = i + 25 + x * 0.4;
+                            chars[i].style.color = sinebow(freq, freq, freq, 0, 2, 4, index);
+                        }
+                        return x;
+                    }
+                }
+            });
+            t1.play()
+
+        }
+
+    function create_animated_button() {
+        let button = document.createElement('button')
+        button.onclick
+    }
+
+    function wrapText(parent, letter, i) {
+        let span = document.createElement("span");
+        span.textContent = letter;
+        span.style.color = sinebow(freq, freq, freq, 0, 2, 4, i + 25);
+        parent.appendChild(span);
+        return parent;
+    }
+
+    function sinebow(freq1, freq2, freq3, phase1, phase2, phase3, i) {
+        let width = 127;
+        let center = 128;
+
+        let r = Math.sin(freq1 * i + phase1) * width + center;
+        let g = Math.sin(freq2 * i + phase2) * width + center;
+        let b = Math.sin(freq3 * i + phase3) * width + center;
+
+        return `rgb(${r >> 0},${g >> 0},${b >> 0})`;
     }
 
 })
