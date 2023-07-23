@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         NJoyChat
 // @namespace    https://www.joyclub.de/chat/login/
-// @version      Alpha-v7
+// @version      Alpha-v8
 // @downloadURL  https://raw.githubusercontent.com/NJoyChat/NJoyChat/master/NJoyChat.js
 // @updateURL    https://raw.githubusercontent.com/NJoyChat/NJoyChat/master/NJoyChat.js
 // @description  Improves JoyChat with additional utilities.
@@ -42,7 +42,6 @@ class TextAutoGreeting {
 }
 
 
-
 (function () {
     'use strict';
 
@@ -77,7 +76,7 @@ class TextAutoGreeting {
         let toolbar = document.querySelectorAll('.toolbar')[0]
         if (toolbar !== null) {
             create_container_divs()
-            //create_animation_buttons()
+            create_animation_buttons()
             create_function_buttons()
             create_macro_admin_buttons()
             create_auto_greeting_admin_buttons()
@@ -87,20 +86,50 @@ class TextAutoGreeting {
 
     function create_animation_buttons() {
         let container_div = document.getElementById('njoy_animation_buttons_container')
-        let button = document.createElement('button')
+        let stitch_span = document.createElement('span')
+        let stitch_img_span = document.createElement('span')
+        stitch_img_span.style.display = 'block'
 
-        button.innerText = "GSAP Animation"
-        button.setAttribute('class', " j-button__content ")
+        stitch_span.style.display = "block"
+        stitch_span.setAttribute('class', 'smiley')
+        let stitch_img = document.createElement('img')
+        stitch_img.setAttribute('src', "https://media.tenor.com/nRbxbNMYMF0AAAAi/stitch-run.gif")
 
-        button.addEventListener('click', function () {
-            let t1 = gsap.timeline({repeat: -1})
-            .set(button, {x: 750})
-            .to(button, {
-                x: 1000,
+        //https://media.tenor.com/fSsxftCb8w0AAAAi/pikachu-running.gif
+        // https://media.tenor.com/nRbxbNMYMF0AAAAi/stitch-run.gif
+        stitch_img.setAttribute('title', 'stitch_running')
+        stitch_img.style.display = "block"
+        stitch_img.setAttribute('alt', 'stitch_running')
+        stitch_img.onload = function () {
+            resizeImage(this, 50, 50);
+        }
+
+        stitch_img_span.style.left = "5%"
+
+        let t1 = gsap.timeline({repeat: -1})
+            .to(stitch_img_span, {
                 duration: 5,
-            });
-        })
-        container_div.appendChild(button)
+                xPercent:95
+            })
+            .set(stitch_img_span, {
+                scaleX: -1,
+                xPercent: -5,
+            })
+            .to(stitch_img_span, {
+                duration: 5,
+                xPercent: -95
+            })
+            .set(stitch_img_span, {
+                scaleX: 1,
+                xPercent: 5,
+            })
+        ;
+        t1.play()
+
+        stitch_img_span.appendChild(stitch_img)
+        stitch_span.appendChild(stitch_img_span)
+
+        container_div.appendChild(stitch_span)
     }
 
     function create_container_divs() {
@@ -619,7 +648,7 @@ class TextAutoGreeting {
                     console.log('Added (chat):', addedNodes, ' Removed (chat): ', removedNodes)
                     handle_chat_message_addition(truly_new);
                     handle_chat_message_removal(truly_removed);
-                    if (m[0].target.children.length >= SCROLLBACK_BUFFER){
+                    if (m[0].target.children.length >= SCROLLBACK_BUFFER) {
                         m[0].target.removeChild(m[0].target.firstChild)
                     }
                 });
@@ -675,7 +704,7 @@ class TextAutoGreeting {
                                     new_node.appendChild(possible_child)
                                 } else {
                                     //new_node.appendChild(possible_child.nodeValue)
-                                    if (possible_emoji_children[1].length !== 0){
+                                    if (possible_emoji_children[1].length !== 0) {
                                         if (possible_emoji_children[1][0] === 69) {
                                             new_node.appendChild(make_text_sinebow(possible_child.nodeValue))
                                         } else {
@@ -737,7 +766,7 @@ class TextAutoGreeting {
             emoji_img.setAttribute('title', emoji_descriptor)
             emoji_img.setAttribute('alt', emoji_descriptor)
             emoji_img.onload = function () {
-                resizeImage(this)
+                resizeImage(this, IMAGE_MAX_HEIGHT, IMAGE_MAX_WIDTH)
             }
             let emoji_alt_span = document.createElement('span')
             emoji_alt_span.innerText = emoji_descriptor
@@ -747,10 +776,10 @@ class TextAutoGreeting {
         }
     }
 
-    function resizeImage(image_node) {
+    function resizeImage(image_node, height, width) {
         console.log('width', image_node.width, 'height', image_node.height)
         console.log('parsed width', parseFloat(image_node.width), 'parsed height', parseFloat(image_node.height))
-        let dimensions = calculateAspectRatioFit(parseFloat(image_node.width), parseFloat(image_node.height), IMAGE_MAX_WIDTH, IMAGE_MAX_HEIGHT)
+        let dimensions = calculateAspectRatioFit(parseFloat(image_node.width), parseFloat(image_node.height), width, height)
         image_node.style.height = dimensions.height.toString()
         image_node.style.width = dimensions.width.toString()
         image_node.setAttribute('height', dimensions.height.toString())
@@ -911,17 +940,17 @@ class TextAutoGreeting {
                     }
                 }
             });
-            t1.play()
+        t1.play()
         //setTimeout(animate, 2000, words, chars, total)
         return container_div
     }
 
-    function animate(words, chars, total){
-            console.log("Timeout triggered.")
-            console.log(words)
-            console.log(chars)
-            console.log(total)
-            let t1 = gsap.timeline({repeat: -1})
+    function animate(words, chars, total) {
+        console.log("Timeout triggered.")
+        console.log(words)
+        console.log(chars)
+        console.log(total)
+        let t1 = gsap.timeline({repeat: -1})
             .set(words, {red: 0})
             .to(words, {
                 red: 255,
@@ -937,9 +966,9 @@ class TextAutoGreeting {
                     }
                 }
             });
-            t1.play()
+        t1.play()
 
-        }
+    }
 
     function create_animated_button() {
         let button = document.createElement('button')
