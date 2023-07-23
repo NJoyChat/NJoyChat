@@ -1,0 +1,5 @@
+![Step1](https://raw.githubusercontent.com/NJoyChat/NJoyChat/master/step1.png)
+![Step2](https://raw.githubusercontent.com/NJoyChat/NJoyChat/master/step2.png)
+![Step3](https://raw.githubusercontent.com/NJoyChat/NJoyChat/master/step3.png)
+![Step4](https://raw.githubusercontent.com/NJoyChat/NJoyChat/master/step4.png)
+![Step5](https://raw.githubusercontent.com/NJoyChat/NJoyChat/master/step5.png)
