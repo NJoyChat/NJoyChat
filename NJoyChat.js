@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         NJoyChat
 // @namespace    https://www.joyclub.de/chat/login/
-// @version      Alpha-v9
+// @version      Alpha-v10
 // @downloadURL  https://raw.githubusercontent.com/NJoyChat/NJoyChat/master/NJoyChat.js
 // @updateURL    https://raw.githubusercontent.com/NJoyChat/NJoyChat/master/NJoyChat.js
 // @description  Improves JoyChat with additional utilities.
@@ -41,9 +41,51 @@ class TextAutoGreeting {
     }
 }
 
+class SettingsGroup extends Map {
+
+    constructor(name, display_name, settings) {
+        super();
+        this.set('name', name)
+        this.set('display_name', display_name)
+        this.set('settings', settings)
+        this.set('loaded_settings', new Map())
+        for (let setting of this.get('settings')) {
+            this.get('loaded_settings').set(setting.get('display_name') ,new Setting(setting.get('display_name'), setting.get('display_name'), setting.get('type'), this.get('name'), setting.get('possible_values')[0], undefined, setting.get('possible_values')))
+        }
+    }
+
+}
+
+class Setting extends Map {
+
+    constructor(name, display_name, type, group, default_value, value, possible_values) {
+        super();
+        this.set('name', name)
+        this.set('display_name', display_name)
+        this.set('type', type)
+        this.set('group', group)
+        this.set('default_value', default_value)
+        if (value === undefined) {
+            this.set('value', default_value)
+        } else {
+            this.set('value', this.load_setting())
+        }
+        this.set('possible_values', possible_values)
+    }
+
+    async load_setting() {
+        return await JSON.parse(GM.getValue("setting_" + this.get('group') + '_' + this.get('name')))
+    }
+
+    save_setting() {
+        GM.setValue("setting_" + this.get('group') + '_' + this.get('name'), JSON.stringify(this.get('value')))
+    }
+
+}
+
 class SettingsMenu {
 
-    constructor(){
+    constructor(settings_group) {
         this.settings_window = document.createElement('div')
         this.set_settings_menu_container_style()
         this.settings_window_container = document.getElementById('njoy_settings_window_container')
@@ -53,14 +95,21 @@ class SettingsMenu {
         this.settings_window.appendChild(this.settings_item_list)
         this.settings_detail_tab = this.create_settings_detail_tab()
         this.settings_window.appendChild(this.settings_detail_tab)
-        console.log(this.settings_item_list)
-        let settings_list = ['asdf', 'test']
-        for (let setting in settings_list){
-            new SettingsItem(settings_list[setting])
+        let test_display_name = ['display_name', 'Regenbogen']
+        let test_possible_values = ['possible_values', ['Test Value', 'Test Value 2', 'Test Value3']]
+        let test_possible_boolean_values = ['possible_values', [true, false]]
+        let test_type_string = ['type', 'String']
+        let test_type_boolean = ['type', 'boolean']
+        let test_setting_string = new Map([test_display_name, test_type_string, test_possible_values])
+        let test_setting_boolean = new Map([[test_display_name[0], test_display_name[1] + ' Schrift'], test_type_boolean, test_possible_boolean_values])
+        let test_settings = [test_setting_boolean]
+        this.settings_list = new SettingsGroup('Teeeest', 'Teeeestdisplay', test_settings)
+        for (let setting of this.settings_list.get('loaded_settings').keys()) {
+            new SettingsItem(this.settings_list.get('loaded_settings').get(setting))
         }
     }
 
-    set_settings_menu_container_style(){
+    set_settings_menu_container_style() {
         this.settings_window.id = 'njoy_settings_window'
         this.settings_window.style.height = "90%"
         this.settings_window.style.width = "90%"
@@ -72,7 +121,7 @@ class SettingsMenu {
         this.settings_window.style.borderColor = "#1b1d1d"
     }
 
-    create_settings_item_list(){
+    create_settings_item_list() {
         let settings_item_list = document.createElement('ol')
         settings_item_list.id = 'njoy_settings_list'
         settings_item_list.style.position = "absolute"
@@ -81,12 +130,12 @@ class SettingsMenu {
         settings_item_list.style.height = '90%'
         settings_item_list.style.width = '30%'
         settings_item_list.style.background = "#262828"
-        settings_item_list.style.color= "#f1f1f1"
+        settings_item_list.style.color = "#f1f1f1"
         settings_item_list.style.borderColor = "#1b1d1d"
         return settings_item_list
     }
 
-    create_settings_detail_tab(){
+    create_settings_detail_tab() {
         let settings_detail_tab = document.createElement('div')
         settings_detail_tab.id = "njoy_settings_detail_tab"
         settings_detail_tab.style.position = "absolute"
@@ -95,7 +144,7 @@ class SettingsMenu {
         settings_detail_tab.style.height = '90%'
         settings_detail_tab.style.width = '50%'
         settings_detail_tab.style.background = "#262828"
-        settings_detail_tab.style.color= "#f1f1f1"
+        settings_detail_tab.style.color = "#f1f1f1"
         settings_detail_tab.style.borderColor = "#1b1d1d"
         return settings_detail_tab
     }
@@ -103,12 +152,13 @@ class SettingsMenu {
 }
 
 class SettingsItem {
-    constructor(setting){
+    constructor(setting) {
         this.setting = setting
+        this.setting_display_name = this.setting.get('display_name')
         this.settings_list = document.getElementById('njoy_settings_list')
         this.settings_detail_tab_container = document.getElementById("njoy_settings_detail_tab")
         this.activate_button = document.createElement('button')
-        this.activate_button.innerText = this.setting
+        this.activate_button.innerText = this.setting_display_name
         this.activate_button.setAttribute('class', " nj-button__content ")
         this.activate_button.style.display = "block"
         this.activate_button.style.width = "100%"
@@ -121,28 +171,39 @@ class SettingsItem {
         this.settings_list.appendChild(this.activate_button)
     }
 
-    set_detail_tab_for_setting_to_primary(event){
-        console.log(event)
-        console.log(this)
+    set_detail_tab_for_setting_to_primary(event) {
         event.currentTarget.settings_detail_tab.set_settings_item_details_to_primary()
     }
 }
 
-class SettingsItemDetails{
+class SettingsItemDetails {
 
     constructor(setting) {
         this.setting = setting
+        this.setting_type = this.setting.get('type')
+        this.setting_display_name = this.setting.get('display_name')
         this.settings_detail_tab = document.getElementById('njoy_settings_detail_tab')
         this.settings_detail_container_div = document.createElement('div')
         this.settings_detail_container_div.hidden = true
         this.setting_details = document.createElement('p')
-        this.setting_details.textContent = this.setting
+        this.setting_details.textContent = 'Name: ' + this.setting_display_name
         this.settings_detail_container_div.appendChild(this.setting_details)
+
+        if (this.setting_type === 'boolean') {
+            let boolean_setting = new SettingItemDetailsBoolean(this.setting)
+            this.settings_detail_container_div.appendChild(boolean_setting.div_container)
+        } else {
+            for (let possible_value of this.setting.get('possible_values')) {
+                let possible_value_paragraph = document.createElement('p')
+                possible_value_paragraph.textContent = 'Possible value: ' + possible_value
+                this.settings_detail_container_div.appendChild(possible_value_paragraph)
+            }
+        }
     }
 
-    set_settings_item_details_to_primary(){
-        for (let child of this.settings_detail_tab.children){
-            if (child.hidden === false){
+    set_settings_item_details_to_primary() {
+        for (let child of this.settings_detail_tab.children) {
+            if (child.hidden === false) {
                 child.hidden = true
             }
         }
@@ -150,8 +211,30 @@ class SettingsItemDetails{
     }
 }
 
+class SettingItemDetailsBoolean{
 
-(function () {
+    constructor(setting) {
+        this.div_container = document.createElement('div');
+        this.div_container.setting = setting
+        this.checkbox = document.createElement('input')
+        this.checkbox.type = "checkbox"
+        this.checkbox.id = 'settings_checkbox_' + setting.get('name')
+        this.checkbox.checked = setting.get('value')
+        this.checkbox.addEventListener('click', this.toggle_setting)
+        this.div_container.appendChild(this.checkbox)
+    }
+
+
+    toggle_setting() {
+        this.parentNode.setting.set('value', !this.parentNode.setting.get('value'))
+        this.parentNode.firstChild.checked = this.parentNode.setting.get('value')
+        this.parentNode.setting.save_setting()
+    }
+
+}
+
+
+(async () => {
     'use strict';
 
     GM.addStyle(".nj-button__content {text-align: center; font-size: 14px; font-weight: bold; padding: 8px 24px; margin: 2px 2px 2px 2px; font-family: JC-ProximaNovaSoft, Verdana, Arial, Helvetica, sans-serif; align-items: center; line-height: 1;}");
@@ -168,7 +251,6 @@ class SettingsItemDetails{
     let IMAGE_MAX_HEIGHT = 250
     let SCROLLBACK_BUFFER = 50
     let freq = Math.PI * 2 / 100; // TODO Possibly make this global or a config value?
-    let config_values = [69, 420, 1337]
     let macros = load_text_macros()
     let auto_greetings = load_auto_greetings()
     let observed_chat_outputs = []
@@ -211,9 +293,8 @@ class SettingsItemDetails{
         joychat_main_window.appendChild(settings_window_container)
     }
 
-    function toggle_settings_window(){
+    function toggle_settings_window() {
         let settings_window_container = document.querySelector('#njoy_settings_window_container')
-        console.log(settings_window_container)
         settings_window_container.hidden = settings_window_container.hidden !== true;
     }
 
@@ -226,7 +307,7 @@ class SettingsItemDetails{
         stitch_span.style.display = "block"
         stitch_span.setAttribute('class', 'smiley')
         let stitch_img = document.createElement('img')
-        stitch_img.setAttribute('src', "https://media.tenor.com/nRbxbNMYMF0AAAAi/stitch-run.gif")
+        stitch_img.setAttribute('src', "https://media.tenor.com/fSsxftCb8w0AAAAi/pikachu-running.gif")
 
         //https://media.tenor.com/fSsxftCb8w0AAAAi/pikachu-running.gif
         // https://media.tenor.com/nRbxbNMYMF0AAAAi/stitch-run.gif
@@ -808,7 +889,6 @@ class SettingsItemDetails{
     }
 
     function handle_chat_message_addition(addedNodes) {
-        console.log(addedNodes)
         for (let addedNode of addedNodes) {
             let new_div = document.createElement('div')
             // Set new class so later on, dom changes won't cause the observer to fire on our new chat.
@@ -819,37 +899,29 @@ class SettingsItemDetails{
             }
 
             let SAVED_BLOCK_DOM = [];
-            console.log(addedNode.childNodes)
             let new_list = addedNode.childNodes;
-            console.log(new_list)
             for (let i = 0; i < new_list.length; i++) {
                 SAVED_BLOCK_DOM.push(new_list[i]);
             }
 
-            console.log('Added node:', SAVED_BLOCK_DOM)
             for (let childNode of SAVED_BLOCK_DOM) {
                 let SAVED_CHILDREN_BLOCK_DOM = [];
-                console.log(addedNode.childNodes)
                 let new_children_list = childNode.childNodes;
-                console.log(new_list)
                 for (let i = 0; i < new_children_list.length; i++) {
                     SAVED_CHILDREN_BLOCK_DOM.push(new_children_list[i]);
                 }
-                console.log('ChildNode:', childNode)
                 if (childNode.tagName === 'P') {
                     let new_node = document.createElement('p')
                     for (let childChildNode of SAVED_CHILDREN_BLOCK_DOM) {
                         console.log('ChildChildNode', childChildNode)
                         if (childChildNode.nodeType !== Node.TEXT_NODE) {
                             let computedStyle = window.getComputedStyle(childChildNode)
-                            console.log(computedStyle)
                             let new_child_node = childChildNode.cloneNode(true)
                             Array.from(computedStyle).forEach(key => new_child_node.style.setProperty(key, computedStyle.getPropertyValue(key), computedStyle.getPropertyPriority(key)))
                             new_node.appendChild(childChildNode.cloneNode(true))
                         } else {
                             let possible_emoji_children = check_for_njoy_emojis(childChildNode.nodeValue)
                             for (let possible_child of possible_emoji_children[0]) {
-                                console.log(possible_child)
                                 if (possible_child.nodeType !== Node.TEXT_NODE) {
                                     new_node.appendChild(possible_child)
                                 } else {
@@ -1052,6 +1124,10 @@ class SettingsItemDetails{
 
 
     function pre_submit_modifications() {
+        let config_values = []
+        if(settings_menu.settings_list.get('loaded_settings').get('Regenbogen Schrift').get('value')){
+            config_values.push(69)
+        }
         let control_spaces = convert_number_array_to_control_spaces(config_values)
         let final_control_space_string = String.fromCharCode(control_space_start_character)
         for (let control_space of control_spaces) {
@@ -1059,9 +1135,7 @@ class SettingsItemDetails{
             final_control_space_string += String.fromCharCode(control_space_separator_character)
         }
         final_control_space_string = final_control_space_string.slice(0, -1)
-        console.log(document.querySelectorAll('#joychat_input_text')[0].value)
         document.querySelectorAll('#joychat_input_text')[0].value += final_control_space_string
-        console.log(document.querySelectorAll('#joychat_input_text')[0].value)
         console.log("Pre submit modifications done.")
     }
 
@@ -1071,7 +1145,6 @@ class SettingsItemDetails{
         let container_div = document.createElement('span')
         container_div.setAttribute('class', 'rainbow')
         container_div.style.red = 0
-        console.log(container_div)
         let split = text_to_rainbowify.split("");
         let words = split.reduce(wrapText, container_div);
         let chars = words.children;
@@ -1096,10 +1169,6 @@ class SettingsItemDetails{
     }
 
     function animate(words, chars, total) {
-        console.log("Timeout triggered.")
-        console.log(words)
-        console.log(chars)
-        console.log(total)
         let t1 = gsap.timeline({repeat: -1})
             .set(words, {red: 0})
             .to(words, {
@@ -1107,7 +1176,6 @@ class SettingsItemDetails{
                 duration: 5,
                 modifiers: {
                     red: function (x) {
-                        console.log(x)
                         for (let i = 0; i < total; i++) {
                             let index = i + 25 + x * 0.4;
                             chars[i].style.color = sinebow(freq, freq, freq, 0, 2, 4, index);
