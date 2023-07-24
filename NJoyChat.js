@@ -41,6 +41,115 @@ class TextAutoGreeting {
     }
 }
 
+class SettingsMenu {
+
+    constructor(){
+        this.settings_window = document.createElement('div')
+        this.set_settings_menu_container_style()
+        this.settings_window_container = document.getElementById('njoy_settings_window_container')
+        this.settings_window_container.appendChild(this.settings_window)
+
+        this.settings_item_list = this.create_settings_item_list()
+        this.settings_window.appendChild(this.settings_item_list)
+        this.settings_detail_tab = this.create_settings_detail_tab()
+        this.settings_window.appendChild(this.settings_detail_tab)
+        console.log(this.settings_item_list)
+        let settings_list = ['asdf', 'test']
+        for (let setting in settings_list){
+            new SettingsItem(settings_list[setting])
+        }
+    }
+
+    set_settings_menu_container_style(){
+        this.settings_window.id = 'njoy_settings_window'
+        this.settings_window.style.height = "90%"
+        this.settings_window.style.width = "90%"
+        this.settings_window.style.top = "5%"
+        this.settings_window.style.left = "5%"
+        this.settings_window.style.position = "absolute"
+        this.settings_window.style.background = "#373939"
+        this.settings_window.style.color = "#f1f1f1"
+        this.settings_window.style.borderColor = "#1b1d1d"
+    }
+
+    create_settings_item_list(){
+        let settings_item_list = document.createElement('ol')
+        settings_item_list.id = 'njoy_settings_list'
+        settings_item_list.style.position = "absolute"
+        settings_item_list.style.top = "5%"
+        settings_item_list.style.left = "5%"
+        settings_item_list.style.height = '90%'
+        settings_item_list.style.width = '30%'
+        settings_item_list.style.background = "#262828"
+        settings_item_list.style.color= "#f1f1f1"
+        settings_item_list.style.borderColor = "#1b1d1d"
+        return settings_item_list
+    }
+
+    create_settings_detail_tab(){
+        let settings_detail_tab = document.createElement('div')
+        settings_detail_tab.id = "njoy_settings_detail_tab"
+        settings_detail_tab.style.position = "absolute"
+        settings_detail_tab.style.top = "5%"
+        settings_detail_tab.style.left = "40%"
+        settings_detail_tab.style.height = '90%'
+        settings_detail_tab.style.width = '50%'
+        settings_detail_tab.style.background = "#262828"
+        settings_detail_tab.style.color= "#f1f1f1"
+        settings_detail_tab.style.borderColor = "#1b1d1d"
+        return settings_detail_tab
+    }
+
+}
+
+class SettingsItem {
+    constructor(setting){
+        this.setting = setting
+        this.settings_list = document.getElementById('njoy_settings_list')
+        this.settings_detail_tab_container = document.getElementById("njoy_settings_detail_tab")
+        this.activate_button = document.createElement('button')
+        this.activate_button.innerText = this.setting
+        this.activate_button.setAttribute('class', " nj-button__content ")
+        this.activate_button.style.display = "block"
+        this.activate_button.style.width = "100%"
+        this.activate_button.classList.add('nsecondary')
+        this.activate_button.classList.add('nj-button')
+        this.settings_detail_tab = new SettingsItemDetails(this.setting)
+        this.activate_button.settings_detail_tab = this.settings_detail_tab
+        this.settings_detail_tab_container.appendChild(this.settings_detail_tab.settings_detail_container_div)
+        this.activate_button.addEventListener('click', this.set_detail_tab_for_setting_to_primary)
+        this.settings_list.appendChild(this.activate_button)
+    }
+
+    set_detail_tab_for_setting_to_primary(event){
+        console.log(event)
+        console.log(this)
+        event.currentTarget.settings_detail_tab.set_settings_item_details_to_primary()
+    }
+}
+
+class SettingsItemDetails{
+
+    constructor(setting) {
+        this.setting = setting
+        this.settings_detail_tab = document.getElementById('njoy_settings_detail_tab')
+        this.settings_detail_container_div = document.createElement('div')
+        this.settings_detail_container_div.hidden = true
+        this.setting_details = document.createElement('p')
+        this.setting_details.textContent = this.setting
+        this.settings_detail_container_div.appendChild(this.setting_details)
+    }
+
+    set_settings_item_details_to_primary(){
+        for (let child of this.settings_detail_tab.children){
+            if (child.hidden === false){
+                child.hidden = true
+            }
+        }
+        this.settings_detail_container_div.hidden = false
+    }
+}
+
 
 (function () {
     'use strict';
@@ -65,6 +174,7 @@ class TextAutoGreeting {
     let observed_chat_outputs = []
     let observed_j_buttons = []
     let users = new Map()
+    let settings_menu
 
     waitForKeyElements(".toolbar", start_running)
     waitForKeyElements("ul.userlist:nth-child(3)", watch_user_list_for_change)
@@ -75,13 +185,36 @@ class TextAutoGreeting {
         console.log('Test. Ich weiß, was ich tue, und das hier ist in keinster Art und Weise bösartig. Bitte kontaktieren Sie mich, falls meine Aktivitäten zu Problemen führen.')
         let toolbar = document.querySelectorAll('.toolbar')[0]
         if (toolbar !== null) {
+            create_settings_window()
+            settings_menu = new SettingsMenu()
             create_container_divs()
             create_animation_buttons()
             create_function_buttons()
             create_macro_admin_buttons()
             create_auto_greeting_admin_buttons()
             watch_for_textarea_submit()
+
         }
+    }
+
+    function create_settings_window() {
+        let settings_window_container = document.createElement('div')
+        settings_window_container.id = 'njoy_settings_window_container'
+        let joychat_main_window = document.body
+        settings_window_container.style.zIndex = "9999"
+        settings_window_container.style.backdropFilter = "blur(4px)"
+        settings_window_container.style.position = "absolute"
+        settings_window_container.style.width = "100%"
+        settings_window_container.style.height = "100%"
+        settings_window_container.hidden = true
+
+        joychat_main_window.appendChild(settings_window_container)
+    }
+
+    function toggle_settings_window(){
+        let settings_window_container = document.querySelector('#njoy_settings_window_container')
+        console.log(settings_window_container)
+        settings_window_container.hidden = settings_window_container.hidden !== true;
     }
 
     function create_animation_buttons() {
@@ -109,7 +242,7 @@ class TextAutoGreeting {
         let t1 = gsap.timeline({repeat: -1})
             .to(stitch_img_span, {
                 duration: 5,
-                xPercent:95
+                xPercent: 95
             })
             .set(stitch_img_span, {
                 scaleX: -1,
@@ -140,6 +273,8 @@ class TextAutoGreeting {
         function_buttons_container.id = "njoy_function_buttons_container"
         let animation_buttons_container = document.createElement('div')
         animation_buttons_container.id = "njoy_animation_buttons_container"
+        animation_buttons_container.style.width = '80%'
+        animation_buttons_container.style.height = '50px'
         let macro_admin_buttons_container = document.createElement('div')
         macro_admin_buttons_container.id = "njoy_macro_admin_buttons_container"
         macro_admin_buttons_container.hidden = true
@@ -152,7 +287,10 @@ class TextAutoGreeting {
         auto_greet_buttons_container.id = "njoy_auto_greet_buttons_container"
         auto_greet_buttons_container.hidden = true
 
-        parent_container.appendChild(animation_buttons_container)
+        //parent_container.appendChild(animation_buttons_container)
+        document.querySelector('#joychat_statusbar').style.display = 'flex'
+        document.querySelector('#joychat_statusbar').style.height = '50px'
+        document.querySelector('.statusbar_general').replaceWith(animation_buttons_container)
         parent_container.appendChild(function_buttons_container)
         parent_container.appendChild(macro_admin_buttons_container)
         parent_container.appendChild(macro_buttons_container)
@@ -222,18 +360,30 @@ class TextAutoGreeting {
         conversion_button.addEventListener("click", convert_editor_to_custom_font)
         conversion_button.id = 'test_button_for_me'
         document.getElementById('njoy_function_buttons_container').appendChild(conversion_button)
+        let show_settings_button = document.createElement('button')
+        show_settings_button.innerText = 'settings'
+        show_settings_button.setAttribute('class', " nj-button__content nsecondary nj-button")
+        show_settings_button.addEventListener("click", toggle_settings_window)
+        show_settings_button.id = 'show_settings_window_button'
+        document.getElementById('njoy_function_buttons_container').appendChild(show_settings_button)
+        let hide_settings_button = document.createElement('button')
+        hide_settings_button.innerText = 'settings'
+        hide_settings_button.setAttribute('class', " nj-button__content nsecondary nj-button")
+        hide_settings_button.addEventListener("click", toggle_settings_window)
+        hide_settings_button.id = 'hide_settings_window_button'
+        document.getElementById('njoy_settings_window').appendChild(hide_settings_button)
         let show_macro_admin_button = document.createElement('button')
         show_macro_admin_button.innerText = 'Toggle Macro Admin.'
         show_macro_admin_button.setAttribute('class', " nj-button__content nsecondary nj-button")
         show_macro_admin_button.addEventListener("click", toggle_macro_admin_container_visibility)
         show_macro_admin_button.id = 'toggle_macro_admin_button'
-        document.getElementById('njoy_function_buttons_container').appendChild(show_macro_admin_button)
+        document.getElementById('njoy_settings_window').appendChild(show_macro_admin_button)
         let show_auto_greet_admin_button = document.createElement('button')
         show_auto_greet_admin_button.innerText = 'Toggle Auto-greet Admin.'
         show_auto_greet_admin_button.setAttribute('class', " nj-button__content nsecondary nj-button")
         show_auto_greet_admin_button.addEventListener("click", toggle_auto_greet_admin_container_visibility)
         show_auto_greet_admin_button.id = 'toggle_auto_greet_admin_button'
-        document.getElementById('njoy_function_buttons_container').appendChild(show_auto_greet_admin_button)
+        document.getElementById('njoy_settings_window').appendChild(show_auto_greet_admin_button)
     }
 
     function create_macro_admin_buttons() {
