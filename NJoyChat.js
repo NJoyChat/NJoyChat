@@ -273,7 +273,7 @@ class SettingsItemDetails{
         function_buttons_container.id = "njoy_function_buttons_container"
         let animation_buttons_container = document.createElement('div')
         animation_buttons_container.id = "njoy_animation_buttons_container"
-        animation_buttons_container.style.width = '80%'
+        animation_buttons_container.style.width = '100%'
         animation_buttons_container.style.height = '50px'
         let macro_admin_buttons_container = document.createElement('div')
         macro_admin_buttons_container.id = "njoy_macro_admin_buttons_container"
