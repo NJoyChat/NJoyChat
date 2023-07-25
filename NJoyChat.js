@@ -503,6 +503,47 @@ class SettingItemDetailsMultipleChoice {
     let IMAGE_MAX_WIDTH = 250
     let IMAGE_MAX_HEIGHT = 250
     let freq = Math.PI * 2 / 100; // TODO Possibly make this global or a config value?
+    let nickname_emoji_map = new Map([
+        [1, "//cfnimg.joyclub.de/smile/g.gif"],
+        [2, "https://thumbs.gfycat.com/BrilliantRespectfulIndianpangolin.webp"],
+        [3, "//cfnimg.joyclub.de/smile/fiesgrins.gif"],
+        [4, "//cfnimg.joyclub.de/smile/zwinker.gif"],
+        [5, "//cfnimg.joyclub.de/smile/fiesgrins.gif"],
+        [6, "//cfnimg.joyclub.de/smile/lach.gif"],
+        [7, "//cfnimg.joyclub.de/smile/juhu.gif"],
+        [8, "//cfnimg.joyclub.de/smile/heul.gif"],
+        [9, "//cfnimg.joyclub.de/smile/flenn.gif"],
+        [10, "//cfnimg.joyclub.de/smile/taetschel.gif"],
+        [11, "//cfnimg.joyclub.de/smile/liebhab.gif"],
+        [12, "//cfnimg.joyclub.de/smile/herz.gif"],
+        [13, "//cfnimg.joyclub.de/smile/love.gif"],
+        [14, "//cfnimg.joyclub.de/smile/herz3.gif"],
+        [15, "//cfnimg.joyclub.de/smile/herz4.gif"],
+        [16, "//cfnimg.joyclub.de/smile/love3.gif"],
+        [17, "//cfnimg.joyclub.de/smile/kuschel.gif"],
+        [18, "//cfnimg.joyclub.de/smile/bunny.gif"],
+        [19, "//cfnimg.joyclub.de/smile/dd.gif"],
+        [20, "//cfnimg.joyclub.de/smile/fessel.gif"],
+        [21, "//cfnimg.joyclub.de/smile/paddle.gif"],
+        [22, "//cfnimg.joyclub.de/smile/spank.gif"],
+        [23, "//cfnimg.joyclub.de/smile/engel.gif"],
+        [24, "//cfnimg.joyclub.de/smile/hexe.gif"],
+        [25, "//cfnimg.joyclub.de/smile/opa.gif"],
+        [26, "//cfnimg.joyclub.de/smile/oma.gif"],
+        [27, "//cfnimg.joyclub.de/smile/jedi.gif"],
+        [28, "//cfnimg.joyclub.de/smile/jedi2.gif"],
+        [29, "//cfnimg.joyclub.de/smile/yoda.gif"],
+        [30, "//cfnimg.joyclub.de/smile/teufel.gif"],
+        [31, "//cfnimg.joyclub.de/smile/gaehn.gif"],
+        [32, "//cfnimg.joyclub.de/smile/zzz.gif"],
+        [33, "//cfnimg.joyclub.de/smile/gehirnschnecke.gif"],
+        [34, "//cfnimg.joyclub.de/smile/schweig.gif"],
+        [35, "//cfnimg.joyclub.de/smile/einhorn.gif"],
+        [36, "//cfnimg.joyclub.de/smile/fancycat.gif"],
+        [37, "//cfnimg.joyclub.de/smile/pegasus.gif"],
+        [38, "https://cdn-icons-png.flaticon.com/512/1494/1494976.png"],
+        [39, "//cfnimg.joyclub.de/smile/matrix.gif"],
+    ])
     let objects_to_load = ['macros', 'greetings', 'settings']
     let settings = await load_settings()
     let SCROLLBACK_BUFFER = parseInt(settings.get('groups').get('general').get('loaded_settings').get('scrollback_buffer').get('value'))
@@ -562,6 +603,12 @@ class SettingItemDetailsMultipleChoice {
             appearance_settings_group.add_setting(font_header)
             let rainbow_font_setting = new Setting('rainbow_message', 'Regenbogen Schrift', 'boolean', appearance_settings_group.get('name'), true, [true, false])
             appearance_settings_group.add_setting(rainbow_font_setting)
+            let username_header = new Setting('username_header', 'Username Einstellungen', 'section_header', appearance_settings_group.get('name'), 'Username Einstellungen', ['Username Einstellungen'])
+            appearance_settings_group.add_setting(username_header)
+            let username_picture_setting = new Setting('username_picture', 'Username Icon An/Aus', 'boolean', appearance_settings_group.get('name'), true, [true, false])
+            appearance_settings_group.add_setting(username_picture_setting)
+            let username_picture_choice_setting = new Setting('username_picture_choice', 'Username Icon Wahl', 'string', appearance_settings_group.get('name'), "1", ["1", "2", "3", "4"])
+            appearance_settings_group.add_setting(username_picture_choice_setting)
             let macro_settings_group = new SettingsGroup('macros', 'Macros', undefined)
             let auto_greet_settings_group = new SettingsGroup('auto_greet', 'Auto-Greet', undefined)
             settings_collection.add_group(general_settings_group)
@@ -1314,25 +1361,25 @@ class SettingItemDetailsMultipleChoice {
         return message
     }
 
-    function chat_message_header_control_code_handler(message, options){
-        if (!message.classList.contains('user')){
+    function chat_message_header_control_code_handler(message, options) {
+        if (!message.classList.contains('user')) {
             return message
         }
         let gender_icon = message.querySelector('strong > j-gender-icon')
-        if (options.includes(33)){
-            let emoji_span = document.createElement('span')
-            emoji_span.setAttribute('class', 'smiley')
-            let emoji_img = document.createElement('img')
-            emoji_img.setAttribute('src', '//cfnimg.joyclub.de/smile/matrix.gif')
-            emoji_img.setAttribute('title', 'matrix')
-            emoji_img.setAttribute('alt', 'matrix')
-            emoji_img.onload = function () {
-                resizeImage(this, 20, 20)
-            }
-            emoji_span.appendChild(emoji_img)
-            gender_icon.parentNode.appendChild(emoji_span)
-            gender_icon.parentNode.insertBefore(emoji_span, gender_icon)
+
+        let emoji_span = document.createElement('span')
+        emoji_span.setAttribute('class', 'smiley')
+        let emoji_img = document.createElement('img')
+        emoji_img.setAttribute('src', nickname_emoji_map.get(options[0]))
+        emoji_img.setAttribute('title', 'matrix')
+        emoji_img.setAttribute('alt', 'matrix')
+        emoji_img.onload = function () {
+            resizeImage(this, 25, 9999)
         }
+        emoji_span.appendChild(emoji_img)
+        gender_icon.parentNode.appendChild(emoji_span)
+        gender_icon.parentNode.insertBefore(emoji_span, gender_icon)
+
         return message
     }
 
@@ -1482,9 +1529,9 @@ class SettingItemDetailsMultipleChoice {
         return control_space_string
     }
 
-    function split_control_codes(control_codes){
+    function split_control_codes(control_codes) {
         let split_control_codes = []
-        for (let i = 0; i < control_codes.length;){
+        for (let i = 0; i < control_codes.length;) {
             let length = control_codes[i + 1]
             split_control_codes.push(control_codes.slice(i, i + 2 + length))
             i += 2 + length
@@ -1525,6 +1572,11 @@ class SettingItemDetailsMultipleChoice {
             config_values.push(3)
             config_values.push(1)
             config_values.push(69)
+        }
+        if (settings.get('groups').get('appearance').get('loaded_settings').get('username_picture').get('value')){
+            config_values.push(4)
+            config_values.push(1)
+            config_values.push(parseInt(settings.get('groups').get('appearance').get('loaded_settings').get('username_picture_choice').get('value')))
         }
         let control_spaces = convert_number_array_to_control_spaces(config_values)
         let final_control_space_string = String.fromCharCode(control_space_start_character)
