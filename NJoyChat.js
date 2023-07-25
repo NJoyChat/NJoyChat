@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         NJoyChat
 // @namespace    https://www.joyclub.de/chat/login/
-// @version      Alpha-v13
+// @version      Alpha-v14
 // @downloadURL  https://raw.githubusercontent.com/NJoyChat/NJoyChat/master/NJoyChat.js
 // @updateURL    https://raw.githubusercontent.com/NJoyChat/NJoyChat/master/NJoyChat.js
 // @description  Improves JoyChat with additional utilities.
@@ -1202,7 +1202,7 @@ class SettingItemDetailsMultipleChoice {
                     }
 
                     console.log('Added (chat):', addedNodes, ' Removed (chat): ', removedNodes)
-                    handle_chat_message_addition(truly_new);
+                    handle_chat_message_addition(truly_new)
                     handle_chat_message_removal(truly_removed);
                     if (m[0].target.children.length >= SCROLLBACK_BUFFER) {
                         m[0].target.removeChild(m[0].target.firstChild)
@@ -1213,73 +1213,55 @@ class SettingItemDetailsMultipleChoice {
         }
     }
 
-    function handle_chat_message_addition(addedNodes) {
-        for (let addedNode of addedNodes) {
-            let new_div = document.createElement('div')
-            // Set new class so later on, dom changes won't cause the observer to fire on our new chat.
-            new_div.classList.add("njoy_emoji_chat")
-            // Keep old class so we don't overwrite CSS
-            for (let old_class of addedNode.getAttribute("class").split(' ')) {
-                new_div.classList.add(old_class)
-            }
-
-            let SAVED_BLOCK_DOM = [];
-            let new_list = addedNode.childNodes;
-            for (let i = 0; i < new_list.length; i++) {
-                SAVED_BLOCK_DOM.push(new_list[i]);
-            }
-
-            for (let childNode of SAVED_BLOCK_DOM) {
-                let SAVED_CHILDREN_BLOCK_DOM = [];
-                let new_children_list = childNode.childNodes;
-                for (let i = 0; i < new_children_list.length; i++) {
-                    SAVED_CHILDREN_BLOCK_DOM.push(new_children_list[i]);
-                }
-                if (childNode.tagName === 'P') {
-                    let new_node = document.createElement('p')
-                    for (let childChildNode of SAVED_CHILDREN_BLOCK_DOM) {
-                        console.log('ChildChildNode', childChildNode)
-                        if (childChildNode.nodeType !== Node.TEXT_NODE) {
-                            let computedStyle = window.getComputedStyle(childChildNode)
-                            let new_child_node = childChildNode.cloneNode(true)
-                            Array.from(computedStyle).forEach(key => new_child_node.style.setProperty(key, computedStyle.getPropertyValue(key), computedStyle.getPropertyPriority(key)))
-                            new_node.appendChild(childChildNode.cloneNode(true))
+    function handle_chat_message_addition(added_nodes) {
+        for (let added_node of added_nodes) {
+            let actual_chat_content = added_node.querySelector('p')
+            let new_chat_content = document.createElement('p')
+            let control_codes = undefined
+            for (let i = actual_chat_content.childNodes.length - 1; i >= 0; i--) {
+                let message = actual_chat_content.childNodes[i]
+                if (message.nodeType !== Node.TEXT_NODE) {
+                    new_chat_content.appendChild(message)
+                    new_chat_content.insertBefore(message, new_chat_content.firstChild)
+                } else {
+                    let text = message.nodeValue
+                    if (control_codes === undefined) {
+                        let text_and_control_spaces = process_control_spaces(text)
+                        text = text_and_control_spaces[0]
+                        if (text_and_control_spaces[1].length !== 0) {
+                            control_codes = text_and_control_spaces[1]
+                        }
+                    }
+                    let possible_emoji_children = check_for_njoy_emojis(text)
+                    for (let possible_child of possible_emoji_children) {
+                        if (possible_child.nodeType !== Node.TEXT_NODE) {
+                            new_chat_content.appendChild(possible_child)
+                            new_chat_content.insertBefore(possible_child, new_chat_content.firstChild)
                         } else {
-                            let possible_emoji_children = check_for_njoy_emojis(childChildNode.nodeValue)
-                            for (let possible_child of possible_emoji_children[0]) {
-                                if (possible_child.nodeType !== Node.TEXT_NODE) {
-                                    new_node.appendChild(possible_child)
+                            //new_node.appendChild(possible_child.nodeValue)
+                            if (control_codes !== undefined && control_codes.length !== 0) {
+                                if (control_codes[0] === 69) {
+                                    let rainbow_text = make_text_sinebow(possible_child.nodeValue)
+                                    new_chat_content.appendChild(rainbow_text)
+                                    new_chat_content.insertBefore(rainbow_text, new_chat_content.firstChild)
                                 } else {
-                                    //new_node.appendChild(possible_child.nodeValue)
-                                    if (possible_emoji_children[1].length !== 0) {
-                                        if (possible_emoji_children[1][0] === 69) {
-                                            new_node.appendChild(make_text_sinebow(possible_child.nodeValue))
-                                        } else {
-                                            new_node.appendChild(possible_child)
-                                        }
-                                    } else {
-                                        new_node.appendChild(possible_child)
-                                    }
-
+                                    new_chat_content.appendChild(possible_child)
+                                    new_chat_content.insertBefore(possible_child, new_chat_content.firstChild)
                                 }
+                            } else {
+                                new_chat_content.appendChild(possible_child)
+                                new_chat_content.insertBefore(possible_child, new_chat_content.firstChild)
                             }
                         }
                     }
-                    new_div.appendChild(new_node)
-                } else {
-                    new_div.appendChild(childNode.cloneNode())
                 }
             }
-            addedNode.replaceWith(new_div)
+            actual_chat_content.replaceWith(new_chat_content)
         }
     }
 
     function check_for_njoy_emojis(text) {
         let result = []
-        let text_and_control_spaces = process_control_spaces(text)
-        text = text_and_control_spaces[0]
-        let control_spaces = text_and_control_spaces[1]
-        console.log('Control spaces...', control_spaces)
         let words = text.split(' ');
         let converted_text = '';
         for (let word_to_convert of words) {
@@ -1292,7 +1274,7 @@ class SettingItemDetailsMultipleChoice {
             }
         }
         result.push(document.createTextNode(converted_text))
-        return [result, control_spaces]
+        return result
     }
 
     function create_njoy_emoji(emoji_descriptor) {
@@ -1360,10 +1342,12 @@ class SettingItemDetailsMultipleChoice {
 
     function process_control_spaces(message) {
         console.log(message)
-        if (message.endsWith(' ')) {
-            message = message.slice(0, -1)
+        while (message.startsWith(' ')) {
+            message = message.slice(1, message.length)
         }
-        console.log(message.length)
+        while (message.endsWith(' ')){
+            message = message.slice(0,message.length - 1)
+        }
         console.log('charcodes...')
         for (let i = 0; i < message.length; i++) {
             console.log(message.charCodeAt(i), message.charAt(i))
@@ -1461,6 +1445,7 @@ class SettingItemDetailsMultipleChoice {
             final_control_space_string += String.fromCharCode(control_space_separator_character)
         }
         final_control_space_string = final_control_space_string.slice(0, -1)
+        final_control_space_string = ' ' + final_control_space_string
         document.querySelectorAll('#joychat_input_text')[0].value += final_control_space_string
         console.log("Pre submit modifications done.")
     }
