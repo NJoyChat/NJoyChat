@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         NJoyChat
 // @namespace    https://www.joyclub.de/chat/login/
-// @version      Alpha-v10
+// @version      Alpha-v11
 // @downloadURL  https://raw.githubusercontent.com/NJoyChat/NJoyChat/master/NJoyChat.js
 // @updateURL    https://raw.githubusercontent.com/NJoyChat/NJoyChat/master/NJoyChat.js
 // @description  Improves JoyChat with additional utilities.
@@ -41,6 +41,41 @@ class TextAutoGreeting {
     }
 }
 
+class SettingsCollection extends Map {
+
+    constructor(groups) {
+        super();
+        this.set('groups', groups)
+    }
+
+    add_group(group) {
+        this.get('groups').set(group.get('name'), group)
+    }
+
+    async save_settings() {
+        await GM.setValue('settings', JSON.stringify(this))
+    }
+
+    toJSON() {
+        return {
+            groups: Object.fromEntries(this.get('groups')),
+        }
+    }
+
+    static fromJSON(json) {
+        return new SettingsCollection(this.load_settings_collection_from_json(json.groups));
+    }
+
+    static load_settings_collection_from_json(json) {
+        let settings_collection = new Map(Object.entries(json))
+        settings_collection.forEach(function (value, key, map) {
+            map.set(key, SettingsGroup.fromJSON(value))
+        })
+        return settings_collection
+    }
+
+}
+
 class SettingsGroup extends Map {
 
     constructor(name, display_name, settings) {
@@ -49,33 +84,91 @@ class SettingsGroup extends Map {
         this.set('display_name', display_name)
         this.set('settings', settings)
         this.set('loaded_settings', new Map())
+        //this.load_settings()
+    }
+
+    load_settings() {
         for (let setting of this.get('settings')) {
-            this.get('loaded_settings').set(setting.get('display_name') ,new Setting(setting.get('display_name'), setting.get('display_name'), setting.get('type'), this.get('name'), setting.get('possible_values')[0], undefined, setting.get('possible_values')))
+            let loaded_setting = new Setting(setting.get('display_name'), setting.get('display_name'), setting.get('type'), this.get('name'), setting.get('possible_values')[0], setting.get('possible_values'))
+            this.get('loaded_settings').set(setting.get('display_name'), loaded_setting)
         }
+    }
+
+    add_setting(setting) {
+        this.get('loaded_settings').set(setting.get('name'), setting)
+    }
+
+    toJSON() {
+        return {
+            name: this.get('name'),
+            display_name: this.get('display_name'),
+            settings: this.get('settings'),
+            loaded_settings: Object.fromEntries(this.get('loaded_settings'))
+        }
+    }
+
+    static fromJSON(json) {
+        const settings_group = new SettingsGroup();
+
+        settings_group.set('name', json.name)
+        settings_group.set('display_name', json.display_name)
+        settings_group.set('settings', json.settings)
+        settings_group.set('loaded_settings', this.load_settings_group_from_json(json.loaded_settings))
+        return settings_group;
+    }
+
+    static load_settings_group_from_json(json) {
+        let settings = new Map(Object.entries(json))
+        settings.forEach(function (value, key, map) {
+            map.set(key, Setting.fromJSON(value))
+        })
+        return settings
     }
 
 }
 
 class Setting extends Map {
 
-    constructor(name, display_name, type, group, default_value, value, possible_values) {
+    constructor(name, display_name, type, group, default_value, possible_values) {
         super();
         this.set('name', name)
         this.set('display_name', display_name)
         this.set('type', type)
         this.set('group', group)
         this.set('default_value', default_value)
-        if (value === undefined) {
-            this.set('value', default_value)
-        } else {
-            this.set('value', this.load_setting())
-        }
+        this.set('value', default_value)
         this.set('possible_values', possible_values)
     }
 
-    async load_setting() {
-        return await JSON.parse(GM.getValue("setting_" + this.get('group') + '_' + this.get('name')))
+    toJSON() {
+        return {
+            name: this.get('name'),
+            display_name: this.get('display_name'),
+            type: this.get('type'),
+            group: this.get('group'),
+            default_value: this.get('default_value'),
+            value: this.get('value'),
+            possible_values: this.get('possible_values'),
+        }
     }
+
+    static fromJSON(json) {
+        const setting = new Setting();
+        setting.set('name', json.name)
+        setting.set('display_name', json.display_name)
+        setting.set('type', json.type)
+        setting.set('group', json.group)
+        setting.set('default_value', json.default_value)
+        setting.set('value', json.value)
+        setting.set('possible_values', json.possible_values)
+
+        return setting
+    }
+
+    async load_setting() {
+        return await GM.getValue('setting_' + this.get('group') + '_' + this.get('name'), '{"setting_' + this.get('group') + '_' + this.get('name') + '": "' + this.get("default_value") + '"}')
+    }
+
 
     save_setting() {
         GM.setValue("setting_" + this.get('group') + '_' + this.get('name'), JSON.stringify(this.get('value')))
@@ -85,28 +178,54 @@ class Setting extends Map {
 
 class SettingsMenu {
 
-    constructor(settings_group) {
+    constructor(settings_collection) {
         this.settings_window = document.createElement('div')
         this.set_settings_menu_container_style()
         this.settings_window_container = document.getElementById('njoy_settings_window_container')
         this.settings_window_container.appendChild(this.settings_window)
-
+        this.settings_collection = settings_collection
+        this.settings_list = ''
         this.settings_item_list = this.create_settings_item_list()
         this.settings_window.appendChild(this.settings_item_list)
         this.settings_detail_tab = this.create_settings_detail_tab()
         this.settings_window.appendChild(this.settings_detail_tab)
-        let test_display_name = ['display_name', 'Regenbogen']
-        let test_possible_values = ['possible_values', ['Test Value', 'Test Value 2', 'Test Value3']]
-        let test_possible_boolean_values = ['possible_values', [true, false]]
-        let test_type_string = ['type', 'String']
-        let test_type_boolean = ['type', 'boolean']
-        let test_setting_string = new Map([test_display_name, test_type_string, test_possible_values])
-        let test_setting_boolean = new Map([[test_display_name[0], test_display_name[1] + ' Schrift'], test_type_boolean, test_possible_boolean_values])
-        let test_settings = [test_setting_boolean]
-        this.settings_list = new SettingsGroup('Teeeest', 'Teeeestdisplay', test_settings)
-        for (let setting of this.settings_list.get('loaded_settings').keys()) {
-            new SettingsItem(this.settings_list.get('loaded_settings').get(setting))
+        this.load_settings()
+    }
+
+    load_settings() {
+        console.log('Loading settings...', this.settings_collection)
+        console.log(this.settings_collection.get('groups'))
+        let iterator
+        try {
+            iterator = this.settings_collection.get('groups').keys()
+        } catch (error) {
+            console.error(error);
+            iterator = this.settings_collection.get('groups').entries()
+            // Expected output: ReferenceError: nonExistentFunction is not defined
+            // (Note: the exact output may be browser-dependent)
         }
+
+        for (let settings_group of iterator) {
+            new SettingsGroupEntry(this.settings_collection.get('groups').get(settings_group))
+        }
+
+    }
+
+    save_settings() {
+        GM.setValue('njoy_settings', JSON.stringify(this.settings_groups_list))
+    }
+
+    get_test_setting() {
+        let test_display_name = ['display_name', 'Regenbogen']
+        let mascot_display_name = ['display_name', 'Maskotchen']
+        let mascot_possible_values = ['possible_values', ['https://media.tenor.com/nRbxbNMYMF0AAAAi/stitch-run.gif', 'https://media.tenor.com/fSsxftCb8w0AAAAi/pikachu-running.gif']]
+        let test_possible_boolean_values = ['possible_values', [true, false]]
+        let test_type_string = ['type', 'multi_choice']
+        let test_type_boolean = ['type', 'boolean']
+        let test_setting_string = new Map([mascot_display_name, test_type_string, mascot_possible_values])
+        let test_setting_boolean = new Map([[test_display_name[0], test_display_name[1] + ' Schrift'], test_type_boolean, test_possible_boolean_values])
+        let test_settings = [test_setting_string, test_setting_boolean]
+        return test_settings
     }
 
     set_settings_menu_container_style() {
@@ -151,20 +270,27 @@ class SettingsMenu {
 
 }
 
-class SettingsItem {
+class SettingsGroupEntry {
     constructor(setting) {
-        this.setting = setting
-        this.setting_display_name = this.setting.get('display_name')
+        this.settings_group = setting
+        console.log(setting)
+        this.setting_group_display_name = this.settings_group.get('display_name')
         this.settings_list = document.getElementById('njoy_settings_list')
         this.settings_detail_tab_container = document.getElementById("njoy_settings_detail_tab")
+
+        // Create activate button and set necessary styles
         this.activate_button = document.createElement('button')
-        this.activate_button.innerText = this.setting_display_name
+        this.activate_button.innerText = this.setting_group_display_name
         this.activate_button.setAttribute('class', " nj-button__content ")
         this.activate_button.style.display = "block"
         this.activate_button.style.width = "100%"
         this.activate_button.classList.add('nsecondary')
         this.activate_button.classList.add('nj-button')
-        this.settings_detail_tab = new SettingsItemDetails(this.setting)
+
+        // Create detail tab for group
+        this.settings_detail_tab = new SettingsGroupDetails(this.settings_group)
+
+        // Link activate button to detail tab
         this.activate_button.settings_detail_tab = this.settings_detail_tab
         this.settings_detail_tab_container.appendChild(this.settings_detail_tab.settings_detail_container_div)
         this.activate_button.addEventListener('click', this.set_detail_tab_for_setting_to_primary)
@@ -176,29 +302,14 @@ class SettingsItem {
     }
 }
 
-class SettingsItemDetails {
+class SettingsGroupDetails {
 
-    constructor(setting) {
-        this.setting = setting
-        this.setting_type = this.setting.get('type')
-        this.setting_display_name = this.setting.get('display_name')
+    constructor(settings_group) {
+        this.setting = settings_group
         this.settings_detail_tab = document.getElementById('njoy_settings_detail_tab')
         this.settings_detail_container_div = document.createElement('div')
         this.settings_detail_container_div.hidden = true
-        this.setting_details = document.createElement('p')
-        this.setting_details.textContent = 'Name: ' + this.setting_display_name
-        this.settings_detail_container_div.appendChild(this.setting_details)
-
-        if (this.setting_type === 'boolean') {
-            let boolean_setting = new SettingItemDetailsBoolean(this.setting)
-            this.settings_detail_container_div.appendChild(boolean_setting.div_container)
-        } else {
-            for (let possible_value of this.setting.get('possible_values')) {
-                let possible_value_paragraph = document.createElement('p')
-                possible_value_paragraph.textContent = 'Possible value: ' + possible_value
-                this.settings_detail_container_div.appendChild(possible_value_paragraph)
-            }
-        }
+        this.create_details_for_settings_in_group()
     }
 
     set_settings_item_details_to_primary() {
@@ -209,9 +320,33 @@ class SettingsItemDetails {
         }
         this.settings_detail_container_div.hidden = false
     }
+
+    create_details_for_settings_in_group() {
+        for (let setting of this.setting.get('loaded_settings').keys()) {
+            let possible_children = this.create_details_for_setting(this.setting.get('loaded_settings').get(setting))
+            for (let possible_child of possible_children) {
+                this.settings_detail_container_div.appendChild(possible_child)
+            }
+        }
+    }
+
+    create_details_for_setting(setting) {
+        let setting_details = document.createElement('p')
+        let setting_display_name = setting.get('display_name')
+        let setting_type = setting.get('type')
+        setting_details.textContent = 'Name: ' + setting_display_name
+        if (setting_type === 'boolean') {
+            let boolean_setting = new SettingItemDetailsBoolean(setting)
+            return [setting_details, boolean_setting.div_container]
+        } else if (setting_type === 'multi_choice') {
+            let multi_choice_setting = new SettingItemDetailsMultipleChoice(setting)
+            return [setting_details, multi_choice_setting.div_container]
+        }
+        return [setting_details]
+    }
 }
 
-class SettingItemDetailsBoolean{
+class SettingItemDetailsBoolean {
 
     constructor(setting) {
         this.div_container = document.createElement('div');
@@ -228,6 +363,34 @@ class SettingItemDetailsBoolean{
     toggle_setting() {
         this.parentNode.setting.set('value', !this.parentNode.setting.get('value'))
         this.parentNode.firstChild.checked = this.parentNode.setting.get('value')
+        this.parentNode.setting.save_setting()
+    }
+
+}
+
+class SettingItemDetailsMultipleChoice {
+
+    constructor(setting) {
+        this.div_container = document.createElement('div');
+        this.div_container.setting = setting
+        this.select = document.createElement('select')
+
+        for (let possible_value of setting.get('possible_values')) {
+            let possible_option_value = document.createElement('option')
+            possible_option_value.textContent = possible_value
+            if (possible_value === setting.get('value')){
+                possible_option_value.selected = true
+            }
+            this.select.appendChild(possible_option_value)
+        }
+
+        this.select.addEventListener('change', this.toggle_setting)
+        this.div_container.appendChild(this.select)
+    }
+
+
+    toggle_setting() {
+        this.parentNode.setting.set('value', this.value)
         this.parentNode.setting.save_setting()
     }
 
@@ -251,6 +414,8 @@ class SettingItemDetailsBoolean{
     let IMAGE_MAX_HEIGHT = 250
     let SCROLLBACK_BUFFER = 50
     let freq = Math.PI * 2 / 100; // TODO Possibly make this global or a config value?
+    let objects_to_load = ['macros', 'greetings', 'settings']
+    let settings = await load_settings()
     let macros = load_text_macros()
     let auto_greetings = load_auto_greetings()
     let observed_chat_outputs = []
@@ -268,7 +433,7 @@ class SettingItemDetailsBoolean{
         let toolbar = document.querySelectorAll('.toolbar')[0]
         if (toolbar !== null) {
             create_settings_window()
-            settings_menu = new SettingsMenu()
+            settings_menu = new SettingsMenu(settings)
             create_container_divs()
             create_animation_buttons()
             create_function_buttons()
@@ -277,6 +442,44 @@ class SettingItemDetailsBoolean{
             watch_for_textarea_submit()
 
         }
+    }
+
+    function create_close_and_save_settings_button(){
+        let hide_settings_button = document.createElement('button')
+        hide_settings_button.innerText = 'settings'
+        hide_settings_button.setAttribute('class', " nj-button__content nsecondary nj-button")
+        hide_settings_button.addEventListener("click", toggle_settings_window)
+        hide_settings_button.id = 'hide_settings_window_button'
+        document.getElementById('njoy_settings_window').appendChild(hide_settings_button)
+    }
+
+    async function load_settings() {
+        let loaded_settings = await GM.getValue('settings')
+        let settings_collection
+        if (loaded_settings === undefined) {
+            settings_collection = new SettingsCollection(new Map())
+            let general_settings_group = new SettingsGroup('general', 'General', undefined)
+            let scrollback_buffer_setting = new Setting('scrollback_buffer', 'Scrollback Buffer Amount', 'String', general_settings_group.get('name'), '50', ['50', '100', '150', 'Infinite'])
+            general_settings_group.add_setting(scrollback_buffer_setting)
+            let appearance_settings_group = new SettingsGroup('appearance', 'Appearance', undefined)
+            let maskotchen_setting = new Setting('Maskotchen', 'Maskotchen', 'multi_choice', appearance_settings_group.get('name'), 'https://media.tenor.com/nRbxbNMYMF0AAAAi/stitch-run.gif', ['https://media.tenor.com/nRbxbNMYMF0AAAAi/stitch-run.gif', 'https://media.tenor.com/fSsxftCb8w0AAAAi/pikachu-running.gif'])
+            appearance_settings_group.add_setting(maskotchen_setting)
+            let maskotchen_enabled_setting = new Setting('maskotchen_enabled', 'Maskotchen An/Aus', 'boolean', appearance_settings_group.get('name'), true, [true, false])
+            appearance_settings_group.add_setting(maskotchen_enabled_setting)
+            let rainbow_font_setting = new Setting('rainbow_message', 'Regenbogen Schrift', 'boolean', appearance_settings_group.get('name'), true, [true, false])
+            appearance_settings_group.add_setting(rainbow_font_setting)
+            let macro_settings_group = new SettingsGroup('macros', 'Macros', undefined)
+            let auto_greet_settings_group = new SettingsGroup('auto_greet', 'Auto-Greet', undefined)
+            settings_collection.add_group(general_settings_group)
+            settings_collection.add_group(appearance_settings_group)
+            settings_collection.add_group(macro_settings_group)
+            settings_collection.add_group(auto_greet_settings_group)
+        } else {
+            settings_collection = SettingsCollection.fromJSON(JSON.parse(loaded_settings))
+        }
+        console.log(settings_collection)
+        //console.log(JSON.stringify(settings_collection))
+        return settings_collection
     }
 
     function create_settings_window() {
@@ -289,17 +492,26 @@ class SettingItemDetailsBoolean{
         settings_window_container.style.width = "100%"
         settings_window_container.style.height = "100%"
         settings_window_container.hidden = true
-
         joychat_main_window.appendChild(settings_window_container)
     }
 
-    function toggle_settings_window() {
+    async function toggle_settings_window() {
         let settings_window_container = document.querySelector('#njoy_settings_window_container')
-        settings_window_container.hidden = settings_window_container.hidden !== true;
+        if (settings_window_container.hidden) {
+            settings_window_container.hidden = false
+        } else {
+            await settings.save_settings()
+            settings = await load_settings()
+            settings_window_container.remove()
+            create_settings_window()
+            settings_menu = new SettingsMenu(settings)
+            create_close_and_save_settings_button()
+        }
     }
 
     function create_animation_buttons() {
         let container_div = document.getElementById('njoy_animation_buttons_container')
+        container_div.hidden = !settings.get('groups').get('appearance').get('loaded_settings').get('maskotchen_enabled').get('value');
         let stitch_span = document.createElement('span')
         let stitch_img_span = document.createElement('span')
         stitch_img_span.style.display = 'block'
@@ -307,7 +519,7 @@ class SettingItemDetailsBoolean{
         stitch_span.style.display = "block"
         stitch_span.setAttribute('class', 'smiley')
         let stitch_img = document.createElement('img')
-        stitch_img.setAttribute('src', "https://media.tenor.com/fSsxftCb8w0AAAAi/pikachu-running.gif")
+        stitch_img.setAttribute('src', settings.get('groups').get('appearance').get('loaded_settings').get('Maskotchen').get('value'))
 
         //https://media.tenor.com/fSsxftCb8w0AAAAi/pikachu-running.gif
         // https://media.tenor.com/nRbxbNMYMF0AAAAi/stitch-run.gif
@@ -447,12 +659,7 @@ class SettingItemDetailsBoolean{
         show_settings_button.addEventListener("click", toggle_settings_window)
         show_settings_button.id = 'show_settings_window_button'
         document.getElementById('njoy_function_buttons_container').appendChild(show_settings_button)
-        let hide_settings_button = document.createElement('button')
-        hide_settings_button.innerText = 'settings'
-        hide_settings_button.setAttribute('class', " nj-button__content nsecondary nj-button")
-        hide_settings_button.addEventListener("click", toggle_settings_window)
-        hide_settings_button.id = 'hide_settings_window_button'
-        document.getElementById('njoy_settings_window').appendChild(hide_settings_button)
+        create_close_and_save_settings_button()
         let show_macro_admin_button = document.createElement('button')
         show_macro_admin_button.innerText = 'Toggle Macro Admin.'
         show_macro_admin_button.setAttribute('class', " nj-button__content nsecondary nj-button")
@@ -514,6 +721,10 @@ class SettingItemDetailsBoolean{
                                     counter++
                                     if (counter === macro_list.size) {
                                         console.log("Initiating stage 2.")
+                                        objects_to_load = objects_to_load.filter(item => item !== 'macros')
+                                        if (objects_to_load.length === 0) {
+                                            start_running()
+                                        }
                                         create_macro_buttons()
                                     }
                                 }
@@ -543,6 +754,10 @@ class SettingItemDetailsBoolean{
                                     }
                                     counter++
                                     if (counter === auto_greetings_list.size) {
+                                        objects_to_load = objects_to_load.filter(item => item !== 'greetings')
+                                        if (objects_to_load.length === 0) {
+                                            start_running()
+                                        }
                                         create_auto_greeting_buttons()
                                     }
                                 }
@@ -1125,7 +1340,8 @@ class SettingItemDetailsBoolean{
 
     function pre_submit_modifications() {
         let config_values = []
-        if(settings_menu.settings_list.get('loaded_settings').get('Regenbogen Schrift').get('value')){
+
+        if (settings.get('groups').get('appearance').get('loaded_settings').get('rainbow_message').get('value')) {
             config_values.push(69)
         }
         let control_spaces = convert_number_array_to_control_spaces(config_values)
