@@ -1218,46 +1218,122 @@ class SettingItemDetailsMultipleChoice {
             let actual_chat_content = added_node.querySelector('p')
             let new_chat_content = document.createElement('p')
             let control_codes = undefined
-            for (let i = actual_chat_content.childNodes.length - 1; i >= 0; i--) {
-                let message = actual_chat_content.childNodes[i]
-                if (message.nodeType !== Node.TEXT_NODE) {
-                    new_chat_content.appendChild(message)
-                    new_chat_content.insertBefore(message, new_chat_content.firstChild)
-                } else {
-                    let text = message.nodeValue
-                    if (control_codes === undefined) {
-                        let text_and_control_spaces = process_control_spaces(text)
-                        text = text_and_control_spaces[0]
-                        if (text_and_control_spaces[1].length !== 0) {
-                            control_codes = text_and_control_spaces[1]
+            let lucky_punch = process_control_spaces(actual_chat_content.childNodes[actual_chat_content.childNodes.length - 1].nodeValue)
+            console.log('Lucky punch! ', lucky_punch)
+            if (lucky_punch[1].length === 0) {
+                // didn't find control spaces on first try, keep digging.
+                for (let i = actual_chat_content.childNodes.length - 1; i >= 0; i--) {
+                    let message = actual_chat_content.childNodes[i]
+                    if (message.nodeType !== Node.TEXT_NODE) {
+                        new_chat_content.appendChild(message)
+                        new_chat_content.insertBefore(message, new_chat_content.firstChild)
+                    } else {
+                        let text = message.nodeValue
+                        if (control_codes === undefined) {
+                            let text_and_control_spaces = process_control_spaces(text)
+                            text = text_and_control_spaces[0]
+                            if (text_and_control_spaces[1].length !== 0) {
+                                control_codes = text_and_control_spaces[1]
+                            }
                         }
-                    }
-                    let possible_emoji_children = check_for_njoy_emojis(text)
-                    for (let possible_child of possible_emoji_children) {
-                        if (possible_child.nodeType !== Node.TEXT_NODE) {
-                            new_chat_content.appendChild(possible_child)
-                            new_chat_content.insertBefore(possible_child, new_chat_content.firstChild)
-                        } else {
-                            //new_node.appendChild(possible_child.nodeValue)
-                            if (control_codes !== undefined && control_codes.length !== 0) {
-                                if (control_codes[0] === 69) {
-                                    let rainbow_text = make_text_sinebow(possible_child.nodeValue)
-                                    new_chat_content.appendChild(rainbow_text)
-                                    new_chat_content.insertBefore(rainbow_text, new_chat_content.firstChild)
+                        let possible_emoji_children = check_for_njoy_emojis(text)
+                        for (let possible_child of possible_emoji_children) {
+                            if (possible_child.nodeType !== Node.TEXT_NODE) {
+                                new_chat_content.appendChild(possible_child)
+                                new_chat_content.insertBefore(possible_child, new_chat_content.firstChild)
+                            } else {
+                                //new_node.appendChild(possible_child.nodeValue)
+                                if (control_codes !== undefined && control_codes.length !== 0) {
+                                    if (control_codes[0] === 69) {
+                                        let rainbow_text = make_text_sinebow(possible_child.nodeValue)
+                                        new_chat_content.appendChild(rainbow_text)
+                                        new_chat_content.insertBefore(rainbow_text, new_chat_content.firstChild)
+                                    } else {
+                                        new_chat_content.appendChild(possible_child)
+                                        new_chat_content.insertBefore(possible_child, new_chat_content.firstChild)
+                                    }
                                 } else {
                                     new_chat_content.appendChild(possible_child)
                                     new_chat_content.insertBefore(possible_child, new_chat_content.firstChild)
                                 }
-                            } else {
-                                new_chat_content.appendChild(possible_child)
-                                new_chat_content.insertBefore(possible_child, new_chat_content.firstChild)
                             }
                         }
                     }
                 }
+            } else {
+                console.log('found spaces')
+                // found control spaces on first try.
+                actual_chat_content.childNodes[actual_chat_content.childNodes.length - 1].nodeValue = lucky_punch[0]
+                control_codes = lucky_punch[1]
+                let individual_control_codes = split_control_codes(control_codes)
+                let control_code_map = new Map()
+                control_code_map.set(1, first_control_code)
+                control_code_map.set(2, second_control_code_handling)
+                control_code_map.set(3, text_control_code_handler)
+                control_code_map.set(4, chat_message_header_control_code_handler)
+                for (let i = actual_chat_content.childNodes.length - 1; i >= 0; i--) {
+                    let message = actual_chat_content.childNodes[i]
+
+                    for (let control_code in individual_control_codes) {
+                        console.log('checking control code', individual_control_codes[control_code][0])
+                        console.log('control code map has control code: ', control_code_map.has(individual_control_codes[control_code][0]))
+                        if (control_code_map.has(individual_control_codes[control_code][0])) {
+                            message = control_code_map.get(individual_control_codes[control_code][0])(message, individual_control_codes[control_code].slice(2, individual_control_codes[control_code].length))
+                        }
+                    }
+                    new_chat_content.appendChild(message)
+                    new_chat_content.insertBefore(message, new_chat_content.firstChild)
+                }
+
             }
             actual_chat_content.replaceWith(new_chat_content)
         }
+    }
+
+
+    function first_control_code(message, options) {
+        console.log('First control code handler: ', message, options)
+        return message
+    }
+
+    function second_control_code_handling(message, options) {
+        console.log('Second control code handler: ', message, options)
+        return message
+    }
+
+    function text_control_code_handler(message, options) {
+        console.log('Text control handler:', message, options)
+        if (message.nodeType !== Node.TEXT_NODE) {
+            console.log('Text control handler invoked on non text node. Returning.')
+            return message
+        }
+        if (options.includes(69)) {
+            console.log('69 was in options')
+            message = make_text_sinebow(message.nodeValue)
+        }
+        return message
+    }
+
+    function chat_message_header_control_code_handler(message, options){
+        if (!message.classList.contains('user')){
+            return message
+        }
+        let gender_icon = message.querySelector('strong > j-gender-icon')
+        if (options.includes(33)){
+            let emoji_span = document.createElement('span')
+            emoji_span.setAttribute('class', 'smiley')
+            let emoji_img = document.createElement('img')
+            emoji_img.setAttribute('src', '//cfnimg.joyclub.de/smile/matrix.gif')
+            emoji_img.setAttribute('title', 'matrix')
+            emoji_img.setAttribute('alt', 'matrix')
+            emoji_img.onload = function () {
+                resizeImage(this, 20, 20)
+            }
+            emoji_span.appendChild(emoji_img)
+            gender_icon.parentNode.appendChild(emoji_span)
+            gender_icon.parentNode.insertBefore(emoji_span, gender_icon)
+        }
+        return message
     }
 
     function check_for_njoy_emojis(text) {
@@ -1345,8 +1421,8 @@ class SettingItemDetailsMultipleChoice {
         while (message.startsWith(' ')) {
             message = message.slice(1, message.length)
         }
-        while (message.endsWith(' ')){
-            message = message.slice(0,message.length - 1)
+        while (message.endsWith(' ')) {
+            message = message.slice(0, message.length - 1)
         }
         console.log('charcodes...')
         for (let i = 0; i < message.length; i++) {
@@ -1406,6 +1482,16 @@ class SettingItemDetailsMultipleChoice {
         return control_space_string
     }
 
+    function split_control_codes(control_codes){
+        let split_control_codes = []
+        for (let i = 0; i < control_codes.length;){
+            let length = control_codes[i + 1]
+            split_control_codes.push(control_codes.slice(i, i + 2 + length))
+            i += 2 + length
+        }
+        return split_control_codes
+    }
+
     function assign_control_spaces_to_values() {
 
     }
@@ -1436,6 +1522,8 @@ class SettingItemDetailsMultipleChoice {
         let config_values = []
 
         if (settings.get('groups').get('appearance').get('loaded_settings').get('rainbow_message').get('value')) {
+            config_values.push(3)
+            config_values.push(1)
             config_values.push(69)
         }
         let control_spaces = convert_number_array_to_control_spaces(config_values)
@@ -1450,7 +1538,7 @@ class SettingItemDetailsMultipleChoice {
         console.log("Pre submit modifications done.")
     }
 
-    // Utility Functions
+// Utility Functions
 
     function make_text_sinebow(text_to_rainbowify) {
         let container_div = document.createElement('span')
