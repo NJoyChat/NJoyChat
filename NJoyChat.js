@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         NJoyChat
 // @namespace    https://www.joyclub.de/chat/login/
-// @version      Alpha-v12
+// @version      Alpha-v13
 // @downloadURL  https://raw.githubusercontent.com/NJoyChat/NJoyChat/master/NJoyChat.js
 // @updateURL    https://raw.githubusercontent.com/NJoyChat/NJoyChat/master/NJoyChat.js
 // @description  Improves JoyChat with additional utilities.
@@ -318,7 +318,20 @@ class SettingsGroupDetails {
                 child.hidden = true
             }
         }
+        let slide_down_animation = gsap.timeline().set(this.settings_detail_container_div.children, {
+            autoAlpha: 0
+        }).to(this.settings_detail_container_div.children, {
+            autoAlpha: 1,
+            duration: 1.5,
+            stagger: {
+                grid: "auto",
+                from: "start",
+                axis: "y",
+                amount: 1
+            }
+        })
         this.settings_detail_container_div.hidden = false
+        slide_down_animation.play()
     }
 
     create_details_for_settings_in_group() {
@@ -331,23 +344,23 @@ class SettingsGroupDetails {
     }
 
     create_details_for_setting(setting) {
-        let setting_details = document.createElement('p')
-        let setting_display_name = setting.get('display_name')
         let setting_type = setting.get('type')
-        setting_details.textContent = 'Name: ' + setting_display_name
         if (setting_type === 'boolean') {
             let boolean_setting = new SettingItemDetailsBoolean(setting)
-            return [setting_details, boolean_setting.div_container]
+            return [boolean_setting.div_container]
         } else if (setting_type === 'multi_choice') {
             let multi_choice_setting = new SettingItemDetailsMultipleChoice(setting)
-            return [setting_details, multi_choice_setting.div_container]
+            return [multi_choice_setting.div_container]
         } else if (setting_type === 'string') {
             let string_setting = new SettingItemDetailsString(setting)
-            return [setting_details, string_setting.div_container]
-        } else if (setting_type === 'section_header'){
+            return [string_setting.div_container]
+        } else if (setting_type === 'section_header') {
             let section_header_setting = new SettingItemDetailsSectionHeader(setting)
             return [section_header_setting.div_container]
         }
+        let setting_details = document.createElement('p')
+        let setting_display_name = setting.get('display_name')
+        setting_details.textContent = 'Name: ' + setting_display_name
         return [setting_details]
     }
 }
@@ -357,6 +370,8 @@ class SettingItemDetailsSectionHeader {
     constructor(setting) {
         this.div_container = document.createElement('div');
         this.div_container.setting = setting
+        this.div_container.style.overflow = 'hidden'
+        this.div_container.style.margin = '1%'
         this.divider_top = document.createElement('hr')
         this.divider_top.style.borderTop = "3px solid #bbb"
         this.divider_top.style.borderRadius = "5px"
@@ -380,11 +395,19 @@ class SettingItemDetailsBoolean {
     constructor(setting) {
         this.div_container = document.createElement('div');
         this.div_container.setting = setting
+        this.div_container.style.overflow = 'hidden'
+        this.div_container.style.margin = '1%'
+        let setting_details = document.createElement('p')
+        setting_details.textContent = setting.get('display_name') + ':'
+        setting_details.style.float = 'left'
+        this.div_container.appendChild(setting_details)
+
         this.checkbox = document.createElement('input')
         this.checkbox.type = "checkbox"
         this.checkbox.id = 'settings_checkbox_' + setting.get('name')
         this.checkbox.checked = setting.get('value')
         this.checkbox.addEventListener('click', this.toggle_setting)
+        this.checkbox.style.float = 'right'
         this.div_container.appendChild(this.checkbox)
     }
 
@@ -402,10 +425,18 @@ class SettingItemDetailsString {
     constructor(setting) {
         this.div_container = document.createElement('div');
         this.div_container.setting = setting
+        this.div_container.style.overflow = 'hidden'
+        this.div_container.style.margin = '1%'
+        let setting_details = document.createElement('p')
+        setting_details.textContent = setting.get('display_name') + ':'
+        setting_details.style.float = 'left'
+        this.div_container.appendChild(setting_details)
+
         this.input = document.createElement('input')
         this.input.id = 'settings_input_' + setting.get('name')
         this.input.value = setting.get('value')
         this.input.addEventListener('input', this.update_setting)
+        this.input.style.float = 'right'
         this.div_container.appendChild(this.input)
     }
 
@@ -422,19 +453,28 @@ class SettingItemDetailsMultipleChoice {
 
     constructor(setting) {
         this.div_container = document.createElement('div');
+        this.div_container.style.overflow = 'hidden'
+        this.div_container.style.margin = '1%'
         this.div_container.setting = setting
+
+        let setting_details = document.createElement('p')
+        setting_details.textContent = setting.get('display_name') + ':'
+        setting_details.style.float = 'left'
+        this.div_container.appendChild(setting_details)
+
         this.select = document.createElement('select')
 
         for (let possible_value of setting.get('possible_values')) {
             let possible_option_value = document.createElement('option')
             possible_option_value.textContent = possible_value
-            if (possible_value === setting.get('value')){
+            if (possible_value === setting.get('value')) {
                 possible_option_value.selected = true
             }
             this.select.appendChild(possible_option_value)
         }
 
         this.select.addEventListener('change', this.toggle_setting)
+        this.select.style.float = 'right'
         this.div_container.appendChild(this.select)
     }
 
@@ -494,7 +534,7 @@ class SettingItemDetailsMultipleChoice {
         }
     }
 
-    function create_close_and_save_settings_button(){
+    function create_close_and_save_settings_button() {
         let hide_settings_button = document.createElement('button')
         hide_settings_button.innerText = 'settings'
         hide_settings_button.setAttribute('class', " nj-button__content nsecondary nj-button")
@@ -512,13 +552,13 @@ class SettingItemDetailsMultipleChoice {
             let scrollback_buffer_setting = new Setting('scrollback_buffer', 'Scrollback Buffer Amount', 'string', general_settings_group.get('name'), '50', ['50', '100', '150', 'Infinite'])
             general_settings_group.add_setting(scrollback_buffer_setting)
             let appearance_settings_group = new SettingsGroup('appearance', 'Appearance', undefined)
-            let maskotchen_header = new Setting('maskotchen_header', 'Maskotchen Einstellungen', 'section_header',appearance_settings_group.get('name'), 'Maskotchen Einstellungen', ['Maskotchen Einstellungen'])
+            let maskotchen_header = new Setting('maskotchen_header', 'Maskotchen Einstellungen', 'section_header', appearance_settings_group.get('name'), 'Maskotchen Einstellungen', ['Maskotchen Einstellungen'])
             appearance_settings_group.add_setting(maskotchen_header)
             let maskotchen_setting = new Setting('Maskotchen', 'Maskotchen', 'multi_choice', appearance_settings_group.get('name'), 'https://media.tenor.com/nRbxbNMYMF0AAAAi/stitch-run.gif', ['https://media.tenor.com/nRbxbNMYMF0AAAAi/stitch-run.gif', 'https://media.tenor.com/fSsxftCb8w0AAAAi/pikachu-running.gif'])
             appearance_settings_group.add_setting(maskotchen_setting)
             let maskotchen_enabled_setting = new Setting('maskotchen_enabled', 'Maskotchen An/Aus', 'boolean', appearance_settings_group.get('name'), true, [true, false])
             appearance_settings_group.add_setting(maskotchen_enabled_setting)
-            let font_header = new Setting('font_header', 'Schrift Einstellungen', 'section_header',appearance_settings_group.get('name'), 'Schrift Einstellungen', ['Schrift Einstellungen'])
+            let font_header = new Setting('font_header', 'Schrift Einstellungen', 'section_header', appearance_settings_group.get('name'), 'Schrift Einstellungen', ['Schrift Einstellungen'])
             appearance_settings_group.add_setting(font_header)
             let rainbow_font_setting = new Setting('rainbow_message', 'Regenbogen Schrift', 'boolean', appearance_settings_group.get('name'), true, [true, false])
             appearance_settings_group.add_setting(rainbow_font_setting)
@@ -553,10 +593,26 @@ class SettingItemDetailsMultipleChoice {
         let settings_window_container = document.querySelector('#njoy_settings_window_container')
         if (settings_window_container.hidden) {
             settings_window_container.hidden = false
+            let slide_down_animation = gsap.timeline().set(settings_window_container, {
+                autoAlpha: 0
+            }).to(settings_window_container, {
+                autoAlpha: 1,
+                duration: 1,
+            })
+            slide_down_animation.play()
         } else {
             await settings.save_settings()
             settings = await load_settings()
-            settings_window_container.remove()
+
+            let slide_down_animation = gsap.timeline().set(settings_window_container, {
+                autoAlpha: 1
+            }).to(settings_window_container, {
+                autoAlpha: 0,
+                duration: 1,
+            })
+            await slide_down_animation.play().then(() => {
+                settings_window_container.remove()
+            })
             create_settings_window()
             settings_menu = new SettingsMenu(settings)
             create_close_and_save_settings_button()
