@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         NJoyChat
 // @namespace    https://www.joyclub.de/chat/login/
-// @version      Alpha-v11
+// @version      Alpha-v12
 // @downloadURL  https://raw.githubusercontent.com/NJoyChat/NJoyChat/master/NJoyChat.js
 // @updateURL    https://raw.githubusercontent.com/NJoyChat/NJoyChat/master/NJoyChat.js
 // @description  Improves JoyChat with additional utilities.
@@ -341,9 +341,38 @@ class SettingsGroupDetails {
         } else if (setting_type === 'multi_choice') {
             let multi_choice_setting = new SettingItemDetailsMultipleChoice(setting)
             return [setting_details, multi_choice_setting.div_container]
+        } else if (setting_type === 'string') {
+            let string_setting = new SettingItemDetailsString(setting)
+            return [setting_details, string_setting.div_container]
+        } else if (setting_type === 'section_header'){
+            let section_header_setting = new SettingItemDetailsSectionHeader(setting)
+            return [section_header_setting.div_container]
         }
         return [setting_details]
     }
+}
+
+class SettingItemDetailsSectionHeader {
+
+    constructor(setting) {
+        this.div_container = document.createElement('div');
+        this.div_container.setting = setting
+        this.divider_top = document.createElement('hr')
+        this.divider_top.style.borderTop = "3px solid #bbb"
+        this.divider_top.style.borderRadius = "5px"
+
+        this.section_header = document.createElement('p')
+        this.section_header.textContent = setting.get('display_name')
+        this.section_header.style.textAlign = "center"
+
+        this.divider_bottom = document.createElement('hr')
+        this.divider_bottom.style.borderTop = "3px solid #bbb"
+        this.divider_bottom.style.borderRadius = "5px"
+        this.div_container.appendChild(this.divider_top)
+        this.div_container.appendChild(this.section_header)
+        this.div_container.appendChild(this.divider_bottom)
+    }
+
 }
 
 class SettingItemDetailsBoolean {
@@ -363,6 +392,27 @@ class SettingItemDetailsBoolean {
     toggle_setting() {
         this.parentNode.setting.set('value', !this.parentNode.setting.get('value'))
         this.parentNode.firstChild.checked = this.parentNode.setting.get('value')
+        this.parentNode.setting.save_setting()
+    }
+
+}
+
+class SettingItemDetailsString {
+
+    constructor(setting) {
+        this.div_container = document.createElement('div');
+        this.div_container.setting = setting
+        this.input = document.createElement('input')
+        this.input.id = 'settings_input_' + setting.get('name')
+        this.input.value = setting.get('value')
+        this.input.addEventListener('input', this.update_setting)
+        this.div_container.appendChild(this.input)
+    }
+
+
+    update_setting(e) {
+        this.parentNode.setting.set('value', e.target.value)
+        //this.parentNode.firstChild.checked = this.parentNode.setting.get('value')
         this.parentNode.setting.save_setting()
     }
 
@@ -412,10 +462,10 @@ class SettingItemDetailsMultipleChoice {
     let giphy_url = "https://giphy.com/gifs/"
     let IMAGE_MAX_WIDTH = 250
     let IMAGE_MAX_HEIGHT = 250
-    let SCROLLBACK_BUFFER = 50
     let freq = Math.PI * 2 / 100; // TODO Possibly make this global or a config value?
     let objects_to_load = ['macros', 'greetings', 'settings']
     let settings = await load_settings()
+    let SCROLLBACK_BUFFER = parseInt(settings.get('groups').get('general').get('loaded_settings').get('scrollback_buffer').get('value'))
     let macros = load_text_macros()
     let auto_greetings = load_auto_greetings()
     let observed_chat_outputs = []
@@ -459,13 +509,17 @@ class SettingItemDetailsMultipleChoice {
         if (loaded_settings === undefined) {
             settings_collection = new SettingsCollection(new Map())
             let general_settings_group = new SettingsGroup('general', 'General', undefined)
-            let scrollback_buffer_setting = new Setting('scrollback_buffer', 'Scrollback Buffer Amount', 'String', general_settings_group.get('name'), '50', ['50', '100', '150', 'Infinite'])
+            let scrollback_buffer_setting = new Setting('scrollback_buffer', 'Scrollback Buffer Amount', 'string', general_settings_group.get('name'), '50', ['50', '100', '150', 'Infinite'])
             general_settings_group.add_setting(scrollback_buffer_setting)
             let appearance_settings_group = new SettingsGroup('appearance', 'Appearance', undefined)
+            let maskotchen_header = new Setting('maskotchen_header', 'Maskotchen Einstellungen', 'section_header',appearance_settings_group.get('name'), 'Maskotchen Einstellungen', ['Maskotchen Einstellungen'])
+            appearance_settings_group.add_setting(maskotchen_header)
             let maskotchen_setting = new Setting('Maskotchen', 'Maskotchen', 'multi_choice', appearance_settings_group.get('name'), 'https://media.tenor.com/nRbxbNMYMF0AAAAi/stitch-run.gif', ['https://media.tenor.com/nRbxbNMYMF0AAAAi/stitch-run.gif', 'https://media.tenor.com/fSsxftCb8w0AAAAi/pikachu-running.gif'])
             appearance_settings_group.add_setting(maskotchen_setting)
             let maskotchen_enabled_setting = new Setting('maskotchen_enabled', 'Maskotchen An/Aus', 'boolean', appearance_settings_group.get('name'), true, [true, false])
             appearance_settings_group.add_setting(maskotchen_enabled_setting)
+            let font_header = new Setting('font_header', 'Schrift Einstellungen', 'section_header',appearance_settings_group.get('name'), 'Schrift Einstellungen', ['Schrift Einstellungen'])
+            appearance_settings_group.add_setting(font_header)
             let rainbow_font_setting = new Setting('rainbow_message', 'Regenbogen Schrift', 'boolean', appearance_settings_group.get('name'), true, [true, false])
             appearance_settings_group.add_setting(rainbow_font_setting)
             let macro_settings_group = new SettingsGroup('macros', 'Macros', undefined)
