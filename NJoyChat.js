@@ -84,14 +84,6 @@ class SettingsGroup extends Map {
         this.set('display_name', display_name)
         this.set('settings', settings)
         this.set('loaded_settings', new Map())
-        //this.load_settings()
-    }
-
-    load_settings() {
-        for (let setting of this.get('settings')) {
-            let loaded_setting = new Setting(setting.get('display_name'), setting.get('display_name'), setting.get('type'), this.get('name'), setting.get('possible_values')[0], setting.get('possible_values'))
-            this.get('loaded_settings').set(setting.get('display_name'), loaded_setting)
-        }
     }
 
     add_setting(setting) {
@@ -165,10 +157,6 @@ class Setting extends Map {
         return setting
     }
 
-    async load_setting() {
-        return await GM.getValue('setting_' + this.get('group') + '_' + this.get('name'), '{"setting_' + this.get('group') + '_' + this.get('name') + '": "' + this.get("default_value") + '"}')
-    }
-
 
     save_setting() {
         GM.setValue("setting_" + this.get('group') + '_' + this.get('name'), JSON.stringify(this.get('value')))
@@ -184,7 +172,6 @@ class SettingsMenu {
         this.settings_window_container = document.getElementById('njoy_settings_window_container')
         this.settings_window_container.appendChild(this.settings_window)
         this.settings_collection = settings_collection
-        this.settings_list = ''
         this.settings_item_list = this.create_settings_item_list()
         this.settings_window.appendChild(this.settings_item_list)
         this.settings_detail_tab = this.create_settings_detail_tab()
@@ -213,19 +200,6 @@ class SettingsMenu {
 
     save_settings() {
         GM.setValue('njoy_settings', JSON.stringify(this.settings_groups_list))
-    }
-
-    get_test_setting() {
-        let test_display_name = ['display_name', 'Regenbogen']
-        let mascot_display_name = ['display_name', 'Maskotchen']
-        let mascot_possible_values = ['possible_values', ['https://media.tenor.com/nRbxbNMYMF0AAAAi/stitch-run.gif', 'https://media.tenor.com/fSsxftCb8w0AAAAi/pikachu-running.gif']]
-        let test_possible_boolean_values = ['possible_values', [true, false]]
-        let test_type_string = ['type', 'multi_choice']
-        let test_type_boolean = ['type', 'boolean']
-        let test_setting_string = new Map([mascot_display_name, test_type_string, mascot_possible_values])
-        let test_setting_boolean = new Map([[test_display_name[0], test_display_name[1] + ' Schrift'], test_type_boolean, test_possible_boolean_values])
-        let test_settings = [test_setting_string, test_setting_boolean]
-        return test_settings
     }
 
     set_settings_menu_container_style() {
@@ -716,17 +690,6 @@ function calculateAspectRatioFit(srcWidth, srcHeight, maxWidth, maxHeight) {
                 }
             }
         }
-
-    }
-
-    function compare_settings_level(original_settings, settings_to_compare, keys) {
-        let original_node = original_settings
-        let node_to_compare = settings_to_compare
-        for (let key of keys) {
-            original_node = original_node.get(key)
-            node_to_compare = node_to_compare.get(key)
-        }
-
 
     }
 
@@ -1667,10 +1630,6 @@ function calculateAspectRatioFit(srcWidth, srcHeight, maxWidth, maxHeight) {
         return split_control_codes
     }
 
-    function assign_control_spaces_to_values() {
-
-    }
-
     function watch_for_textarea_submit() {
         document.querySelectorAll('#joychat_input_text')[0].addEventListener("keydown", watch_for_textarea_enter_submit)
 
@@ -1748,31 +1707,6 @@ function calculateAspectRatioFit(srcWidth, srcHeight, maxWidth, maxHeight) {
         t1.play()
         //setTimeout(animate, 2000, words, chars, total)
         return container_div
-    }
-
-    function animate(words, chars, total) {
-        let t1 = gsap.timeline({repeat: -1})
-            .set(words, {red: 0})
-            .to(words, {
-                red: 255,
-                duration: 5,
-                modifiers: {
-                    red: function (x) {
-                        for (let i = 0; i < total; i++) {
-                            let index = i + 25 + x * 0.4;
-                            chars[i].style.color = sinebow(freq, freq, freq, 0, 2, 4, index);
-                        }
-                        return x;
-                    }
-                }
-            });
-        t1.play()
-
-    }
-
-    function create_animated_button() {
-        let button = document.createElement('button')
-        button.onclick
     }
 
     function wrapText(parent, letter, i) {
