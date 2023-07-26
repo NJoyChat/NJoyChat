@@ -577,7 +577,7 @@ class SettingItemDetailsMultipleChoice {
 
     function create_close_and_save_settings_button() {
         let hide_settings_button = document.createElement('button')
-        hide_settings_button.innerText = 'settings'
+        hide_settings_button.innerText = 'Einstellungen'
         hide_settings_button.setAttribute('class', " nj-button__content nsecondary nj-button")
         hide_settings_button.addEventListener("click", toggle_settings_window)
         hide_settings_button.id = 'hide_settings_window_button'
@@ -589,13 +589,13 @@ class SettingItemDetailsMultipleChoice {
         let settings_collection
         if (loaded_settings === undefined) {
             settings_collection = new SettingsCollection(new Map())
-            let general_settings_group = new SettingsGroup('general', 'General', undefined)
-            let scrollback_buffer_setting = new Setting('scrollback_buffer', 'Scrollback Buffer Amount', 'string', general_settings_group.get('name'), '50', ['50', '100', '150', 'Infinite'])
+            let general_settings_group = new SettingsGroup('general', 'Allgemein', undefined)
+            let scrollback_buffer_setting = new Setting('scrollback_buffer', 'Gleichzeitig angezeigte Nachrichten', 'string', general_settings_group.get('name'), '50', ['50', '100', '150', 'Infinite'])
             general_settings_group.add_setting(scrollback_buffer_setting)
-            let appearance_settings_group = new SettingsGroup('appearance', 'Appearance', undefined)
+            let appearance_settings_group = new SettingsGroup('appearance', 'Darstellung', undefined)
             let maskotchen_header = new Setting('maskotchen_header', 'Maskotchen Einstellungen', 'section_header', appearance_settings_group.get('name'), 'Maskotchen Einstellungen', ['Maskotchen Einstellungen'])
             appearance_settings_group.add_setting(maskotchen_header)
-            let maskotchen_setting = new Setting('Maskotchen', 'Maskotchen', 'multi_choice', appearance_settings_group.get('name'), 'https://media.tenor.com/nRbxbNMYMF0AAAAi/stitch-run.gif', ['https://media.tenor.com/nRbxbNMYMF0AAAAi/stitch-run.gif', 'https://media.tenor.com/fSsxftCb8w0AAAAi/pikachu-running.gif'])
+            let maskotchen_setting = new Setting('Maskotchen', 'Maskotchen', 'multi_choice', appearance_settings_group.get('name'), 'https://media.tenor.com/nRbxbNMYMF0AAAAi/stitch-run.gif', ['https://media.tenor.com/nRbxbNMYMF0AAAAi/stitch-run.gif', 'https://media.tenor.com/fSsxftCb8w0AAAAi/pikachu-running.gif', '//cfnimg.joyclub.de/smile/pegasus.gif', '//cfnimg.joyclub.de/smile/einhorn.gif'])
             appearance_settings_group.add_setting(maskotchen_setting)
             let maskotchen_enabled_setting = new Setting('maskotchen_enabled', 'Maskotchen An/Aus', 'boolean', appearance_settings_group.get('name'), true, [true, false])
             appearance_settings_group.add_setting(maskotchen_enabled_setting)
@@ -603,6 +603,8 @@ class SettingItemDetailsMultipleChoice {
             appearance_settings_group.add_setting(font_header)
             let rainbow_font_setting = new Setting('rainbow_message', 'Regenbogen Schrift', 'boolean', appearance_settings_group.get('name'), true, [true, false])
             appearance_settings_group.add_setting(rainbow_font_setting)
+            let custom_font_setting = new Setting('custom_font_message', 'Schnörkel Schrift', 'boolean', appearance_settings_group.get('name'), false, [true, false])
+            appearance_settings_group.add_setting(custom_font_setting)
             let username_header = new Setting('username_header', 'Username Einstellungen', 'section_header', appearance_settings_group.get('name'), 'Username Einstellungen', ['Username Einstellungen'])
             appearance_settings_group.add_setting(username_header)
             let username_picture_setting = new Setting('username_picture', 'Username Icon An/Aus', 'boolean', appearance_settings_group.get('name'), true, [true, false])
@@ -610,7 +612,7 @@ class SettingItemDetailsMultipleChoice {
             let username_picture_choice_setting = new Setting('username_picture_choice', 'Username Icon Wahl', 'string', appearance_settings_group.get('name'), "1", ["1", "2", "3", "4"])
             appearance_settings_group.add_setting(username_picture_choice_setting)
             let macro_settings_group = new SettingsGroup('macros', 'Macros', undefined)
-            let auto_greet_settings_group = new SettingsGroup('auto_greet', 'Auto-Greet', undefined)
+            let auto_greet_settings_group = new SettingsGroup('auto_greet', 'Auto-Begrüßung', undefined)
             settings_collection.add_group(general_settings_group)
             settings_collection.add_group(appearance_settings_group)
             settings_collection.add_group(macro_settings_group)
@@ -811,7 +813,7 @@ class SettingItemDetailsMultipleChoice {
         conversion_button.id = 'test_button_for_me'
         document.getElementById('njoy_function_buttons_container').appendChild(conversion_button)
         let show_settings_button = document.createElement('button')
-        show_settings_button.innerText = 'settings'
+        show_settings_button.innerText = 'Einstellungen'
         show_settings_button.setAttribute('class', " nj-button__content nsecondary nj-button")
         show_settings_button.addEventListener("click", toggle_settings_window)
         show_settings_button.id = 'show_settings_window_button'
@@ -1084,7 +1086,7 @@ class SettingItemDetailsMultipleChoice {
             let words = text.split(' ');
             let converted_text = '';
             for (let word_to_convert of words) {
-                if (word_to_convert[0] !== '@') {
+                if (word_to_convert[0] !== '@' && word_to_convert[0] !== '*' && word_to_convert[word_to_convert.length - 1] !== '@' && word_to_convert[word_to_convert.length - 1] !== '*') {
                     converted_text += ' ' + convert_string_to_custom_font(word_to_convert)
                 } else {
                     converted_text += word_to_convert
@@ -1568,6 +1570,9 @@ class SettingItemDetailsMultipleChoice {
     function pre_submit_modifications() {
         let config_values = []
 
+        if (settings.get('groups').get('appearance').get('loaded_settings').get('custom_font_message').get('value')) {
+            convert_editor_to_custom_font()
+        }
         if (settings.get('groups').get('appearance').get('loaded_settings').get('rainbow_message').get('value')) {
             config_values.push(3)
             config_values.push(1)
