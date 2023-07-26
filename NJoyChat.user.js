@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         NJoyChat
 // @namespace    https://www.joyclub.de/chat/login/
-// @version      Alpha-v16
+// @version      Alpha-v17
 // @description  Improves JoyChat with additional utilities.
 // @author       NJoyChat Team
 // @match        https://www.joyclub.de/chat/login/
@@ -217,9 +217,9 @@ class SettingsMenu {
         let settings_item_list = document.createElement('ol')
         settings_item_list.id = 'njoy_settings_list'
         settings_item_list.style.position = "absolute"
-        settings_item_list.style.top = "5%"
-        settings_item_list.style.left = "5%"
-        settings_item_list.style.height = '90%'
+        settings_item_list.style.top = "2%"
+        settings_item_list.style.left = "2%"
+        settings_item_list.style.height = '96%'
         settings_item_list.style.width = '30%'
         settings_item_list.style.background = "#262828"
         settings_item_list.style.color = "#f1f1f1"
@@ -232,10 +232,10 @@ class SettingsMenu {
         settings_detail_tab.id = "njoy_settings_detail_tab"
         settings_detail_tab.style.position = "absolute"
         settings_detail_tab.style.overflowY = "scroll"
-        settings_detail_tab.style.top = "5%"
-        settings_detail_tab.style.left = "40%"
-        settings_detail_tab.style.height = '90%'
-        settings_detail_tab.style.width = '50%'
+        settings_detail_tab.style.top = "2%"
+        settings_detail_tab.style.left = "34%"
+        settings_detail_tab.style.height = '96%'
+        settings_detail_tab.style.width = '64%'
         settings_detail_tab.style.background = "#262828"
         settings_detail_tab.style.color = "#f1f1f1"
         settings_detail_tab.style.borderColor = "#1b1d1d"
@@ -550,6 +550,9 @@ class SettingItemDetailsGradientEditor {
         this.div_container = document.createElement('div');
         this.div_container.style.overflow = 'hidden'
         this.div_container.style.margin = '1%'
+        this.div_container.style.display = 'flex'
+        this.div_container.style.flexDirection = 'column'
+        this.div_container.style.flex = '1'
         this.div_container.setting = setting
         this.div_container.preview_function = this.make_text_sinebow
 
@@ -557,15 +560,31 @@ class SettingItemDetailsGradientEditor {
         setting_details.textContent = setting.get('display_name') + ':'
         setting_details.style.float = 'left'
         this.div_container.appendChild(setting_details)
+
+        this.div_container.row_container = document.createElement('div')
+        this.div_container.row_container.style.display = 'flex'
+        this.div_container.row_container.style.flex = '1'
+        this.div_container.rows = []
+        for (let i = 0; i < 4; i++){
+            let row_container = document.createElement('div')
+            row_container.style.display = 'flex'
+            row_container.style.flexDirection = 'column'
+            row_container.style.flex = '1'
+            this.div_container.rows.push(row_container)
+            this.div_container.row_container.appendChild(row_container)
+        }
+        this.div_container.appendChild(this.div_container.row_container)
+
         let value = setting.get('value')
         let names = ['Frequenz Rot', 'Frequenz Grün', 'Frequenz Blau', 'Phase Rot', 'Phase Grün', 'Phase Blau', 'Amplitude Rot', 'Amplitude Grün', 'Amplitude Blau', 'DC Rot', 'DC Grün', 'DC Blau']
         for (let i = 0; i < value.length - 2; i++){
-            this.div_container.appendChild(this.create_value_slider(i, '-3.13840734641021', '3.13840734641021', '0.00000000000001', names[i]))
+            this.div_container.rows[Math.floor(i/3)].appendChild(this.create_value_slider(i, '-3.13840734641021', '3.13840734641021', '0.00000000000001', names[i]))
         }
         this.div_container.appendChild(this.create_value_slider(value.length - 2, '0', '2', '0.00000001', 'Gradient Repetition'))
         this.div_container.appendChild(this.create_value_slider(value.length - 1, '1', '30', '0.5', 'Gradient Speed (Seconds)'))
-        this.div_container.demo_div = this.make_text_sinebow('Das hier ist ein Demo Text der lang genug sein muss, um den Farbverlauf wirklich gut darzustellen.', this.div_container.setting.get('value'))
-        this.div_container.appendChild(this.div_container.demo_div)
+        let demo_div = this.make_text_sinebow('Das hier ist ein Demo Text der lang genug sein muss, um den Farbverlauf wirklich gut darzustellen.', this.div_container.setting.get('value'))
+        demo_div.id = 'demo_div_gradient'
+        this.div_container.appendChild(demo_div)
         this.demo_refresh_button = document.createElement('button')
         this.demo_refresh_button.innerText = 'Demo neu laden'
         this.demo_refresh_button.setAttribute('class', " nj-button__content nsecondary nj-button")
@@ -576,16 +595,18 @@ class SettingItemDetailsGradientEditor {
     
     update_demo_div(){
         let new_demo_div = this.parentNode.preview_function('Das hier ist ein Demo Text der lang genug sein muss, um den Farbverlauf wirklich gut darzustellen.', this.parentNode.setting.get('value'))
-        this.parentNode.replaceChild(new_demo_div, this.parentNode.demo_div)
-        this.parentNode.demo_div = new_demo_div
+        new_demo_div.id = 'demo_div_gradient'
+        this.parentNode.replaceChild(new_demo_div, document.getElementById('demo_div_gradient'))
     }
 
     create_value_slider(value_index, min, max, step, name){
         let value_slider_container = document.createElement('div')
+        value_slider_container.style.flex = '1'
         value_slider_container.style.display = 'flex'
         let name_paragraph = document.createElement('p')
         name_paragraph.textContent = name
         name_paragraph.style.margin = '2px'
+        name_paragraph.style.width = '33%'
         value_slider_container.appendChild(name_paragraph)
         value_slider_container.value_index = value_index
         let slider = document.createElement('input')
@@ -595,6 +616,8 @@ class SettingItemDetailsGradientEditor {
         slider.step = step
         slider.value = this.div_container.setting.get('value')[value_index]
         slider.style.margin = '2px'
+        slider.style.flex = '1'
+        slider.style.width = '33%'
         value_slider_container.slider = slider
         slider.addEventListener('change', this.update_number_input_and_value)
         let number_input = document.createElement('input')
@@ -603,6 +626,9 @@ class SettingItemDetailsGradientEditor {
         number_input.step = step
         number_input.value = this.div_container.setting.get('value')[value_index]
         number_input.style.margin = '2px'
+        number_input.style.flex = '1'
+        number_input.style.minWidth = '0'
+        number_input.style.width = '33%'
         value_slider_container.number_input = number_input
         number_input.addEventListener('change', this.update_slider_and_value)
         value_slider_container.appendChild(slider)
@@ -611,21 +637,21 @@ class SettingItemDetailsGradientEditor {
     }
 
     update_slider_and_value(){
-        let currentValue = this.parentNode.parentNode.setting.get('value')
+        let currentValue = this.parentNode.parentNode.parentNode.parentNode.setting.get('value')
         currentValue[this.parentNode.value_index] = parseFloat(this.value)
         if (this.parentNode.slider.value !== this.value){
             this.parentNode.slider.value = this.value
         }
-        this.parentNode.parentNode.setting.set('value', currentValue)
+        this.parentNode.parentNode.parentNode.parentNode.setting.set('value', currentValue)
     }
 
     update_number_input_and_value(){
-        let currentValue = this.parentNode.parentNode.setting.get('value')
+        let currentValue = this.parentNode.parentNode.parentNode.parentNode.setting.get('value')
         currentValue[this.parentNode.value_index] = parseFloat(this.value)
         if (this.parentNode.number_input.value !== this.value){
             this.parentNode.number_input.value = this.value
         }
-        this.parentNode.parentNode.setting.set('value', currentValue)
+        this.parentNode.parentNode.parentNode.parentNode.setting.set('value', currentValue)
     }
     
     make_text_sinebow(text_to_rainbowify, gradient_settings) {
