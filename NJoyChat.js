@@ -258,6 +258,7 @@ class SettingsMenu {
         let settings_detail_tab = document.createElement('div')
         settings_detail_tab.id = "njoy_settings_detail_tab"
         settings_detail_tab.style.position = "absolute"
+        settings_detail_tab.style.overflowY = "scroll"
         settings_detail_tab.style.top = "5%"
         settings_detail_tab.style.left = "40%"
         settings_detail_tab.style.height = '90%'
@@ -811,13 +812,24 @@ class SettingItemDetailsMultipleChoice {
         conversion_button.setAttribute('class', " nj-button__content nsecondary nj-button")
         conversion_button.addEventListener("click", convert_editor_to_custom_font)
         conversion_button.id = 'test_button_for_me'
-        document.getElementById('njoy_function_buttons_container').appendChild(conversion_button)
+        //document.getElementById('njoy_function_buttons_container').appendChild(conversion_button)
+        let show_settings_container = document.createElement('div')
+        show_settings_container.setAttribute('class', 'fl_r')
+        show_settings_container.style.boxSizing = 'border-box'
+        show_settings_container.style.alignSelf = 'stretch'
+        show_settings_container.style.marginTop = '0px'
+        show_settings_container.style.marginBottom = '0px'
+        show_settings_container.style.height = "100%"
         let show_settings_button = document.createElement('button')
         show_settings_button.innerText = 'Einstellungen'
         show_settings_button.setAttribute('class', " nj-button__content nsecondary nj-button")
         show_settings_button.addEventListener("click", toggle_settings_window)
         show_settings_button.id = 'show_settings_window_button'
-        document.getElementById('njoy_function_buttons_container').appendChild(show_settings_button)
+
+        show_settings_container.appendChild(show_settings_button)
+        document.querySelector('div.bell_switch').parentNode.appendChild(show_settings_container)
+        document.querySelector('div.bell_switch').parentNode.insertBefore(document.querySelector('div.bell_switch'), show_settings_container)
+        //document.getElementById('njoy_function_buttons_container').appendChild(show_settings_button)
         create_close_and_save_settings_button()
         let show_macro_admin_button = document.createElement('button')
         show_macro_admin_button.innerText = 'Toggle Macro Admin.'
