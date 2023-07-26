@@ -2,8 +2,6 @@
 // @name         NJoyChat
 // @namespace    https://www.joyclub.de/chat/login/
 // @version      Alpha-v15
-// @downloadURL  https://raw.githubusercontent.com/NJoyChat/NJoyChat/master/NJoyChat.js
-// @updateURL    https://raw.githubusercontent.com/NJoyChat/NJoyChat/master/NJoyChat.js
 // @description  Improves JoyChat with additional utilities.
 // @author       NJoyChat Team
 // @match        https://www.joyclub.de/chat/login/
