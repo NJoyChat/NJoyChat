@@ -15,6 +15,7 @@
 // @require      https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.2/ScrollTrigger.min.js
 // @require      https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.2/TextPlugin.min.js
 // @require      https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.2/EasePack.min.js
+// @require      https://cdnjs.cloudflare.com/ajax/libs/mathjs/11.9.1/math.js
 // @run-at       document-idle
 // ==/UserScript==
 
@@ -333,6 +334,9 @@ class SettingsGroupDetails {
         } else if (setting_type === 'multi_choice_img_preview') {
             let multi_choice_image_preview_setting = new SettingItemDetailsMultipleChoiceImagePreview(setting)
             return [multi_choice_image_preview_setting.div_container]
+        } else if (setting_type === 'gradient_editor'){
+            let gradient_editor = new SettingItemDetailsGradientEditor(setting)
+            return [gradient_editor.div_container]
         }
         let setting_details = document.createElement('p')
         let setting_display_name = setting.get('display_name')
@@ -540,6 +544,150 @@ function calculateAspectRatioFit(srcWidth, srcHeight, maxWidth, maxHeight) {
     return {width: Math.floor(srcWidth * ratio), height: Math.floor(srcHeight * ratio)};
 }
 
+class SettingItemDetailsGradientEditor {
+
+    constructor(setting) {
+        this.div_container = document.createElement('div');
+        this.div_container.style.overflow = 'hidden'
+        this.div_container.style.margin = '1%'
+        this.div_container.setting = setting
+        this.div_container.preview_function = this.make_text_sinebow
+
+        let setting_details = document.createElement('p')
+        setting_details.textContent = setting.get('display_name') + ':'
+        setting_details.style.float = 'left'
+        this.div_container.appendChild(setting_details)
+        let value = setting.get('value')
+        let names = ['Frequenz Rot', 'Frequenz Grün', 'Frequenz Blau', 'Phase Rot', 'Phase Grün', 'Phase Blau', 'Amplitude Rot', 'Amplitude Grün', 'Amplitude Blau', 'DC Rot', 'DC Grün', 'DC Blau']
+        for (let i = 0; i < value.length - 2; i++){
+            this.div_container.appendChild(this.create_value_slider(i, '-3.13840734641021', '3.13840734641021', '0.00000000000001', names[i]))
+        }
+        this.div_container.appendChild(this.create_value_slider(value.length - 2, '0', '2', '0.00000001', 'Gradient Repetition'))
+        this.div_container.appendChild(this.create_value_slider(value.length - 1, '1', '30', '0.5', 'Gradient Speed (Seconds)'))
+        this.div_container.demo_div = this.make_text_sinebow('Das hier ist ein Demo Text der lang genug sein muss, um den Farbverlauf wirklich gut darzustellen.', this.div_container.setting.get('value'))
+        this.div_container.appendChild(this.div_container.demo_div)
+        this.demo_refresh_button = document.createElement('button')
+        this.demo_refresh_button.innerText = 'Demo neu laden'
+        this.demo_refresh_button.setAttribute('class', " nj-button__content nsecondary nj-button")
+        this.demo_refresh_button.addEventListener("click", this.update_demo_div)
+        this.demo_refresh_button.id = 'update_demo_div'
+        this.div_container.appendChild(this.demo_refresh_button)
+    }
+    
+    update_demo_div(){
+        let new_demo_div = this.parentNode.preview_function('Das hier ist ein Demo Text der lang genug sein muss, um den Farbverlauf wirklich gut darzustellen.', this.parentNode.setting.get('value'))
+        this.parentNode.replaceChild(new_demo_div, this.parentNode.demo_div)
+        this.parentNode.demo_div = new_demo_div
+    }
+
+    create_value_slider(value_index, min, max, step, name){
+        let value_slider_container = document.createElement('div')
+        value_slider_container.style.display = 'flex'
+        let name_paragraph = document.createElement('p')
+        name_paragraph.textContent = name
+        name_paragraph.style.margin = '2px'
+        value_slider_container.appendChild(name_paragraph)
+        value_slider_container.value_index = value_index
+        let slider = document.createElement('input')
+        slider.type = 'range'
+        slider.min = min
+        slider.max = max
+        slider.step = step
+        slider.value = this.div_container.setting.get('value')[value_index]
+        slider.style.margin = '2px'
+        value_slider_container.slider = slider
+        slider.addEventListener('change', this.update_number_input_and_value)
+        let number_input = document.createElement('input')
+        number_input.min = min
+        number_input.max = max
+        number_input.step = step
+        number_input.value = this.div_container.setting.get('value')[value_index]
+        number_input.style.margin = '2px'
+        value_slider_container.number_input = number_input
+        number_input.addEventListener('change', this.update_slider_and_value)
+        value_slider_container.appendChild(slider)
+        value_slider_container.appendChild(number_input)
+        return value_slider_container
+    }
+
+    update_slider_and_value(){
+        let currentValue = this.parentNode.parentNode.setting.get('value')
+        currentValue[this.parentNode.value_index] = parseFloat(this.value)
+        if (this.parentNode.slider.value !== this.value){
+            this.parentNode.slider.value = this.value
+        }
+        this.parentNode.parentNode.setting.set('value', currentValue)
+    }
+
+    update_number_input_and_value(){
+        let currentValue = this.parentNode.parentNode.setting.get('value')
+        currentValue[this.parentNode.value_index] = parseFloat(this.value)
+        if (this.parentNode.number_input.value !== this.value){
+            this.parentNode.number_input.value = this.value
+        }
+        this.parentNode.parentNode.setting.set('value', currentValue)
+    }
+    
+    make_text_sinebow(text_to_rainbowify, gradient_settings) {
+        let container_div = document.createElement('span')
+        container_div.setAttribute('class', 'rainbow')
+        container_div.style.red = 0
+        let split = text_to_rainbowify.split("");
+        let words = split.reduce(wrapText, container_div);
+        let chars = words.children;
+        let total = words.children.length;
+        let freq1 = gradient_settings[0]
+        let freq2 = gradient_settings[1]
+        let freq3 = gradient_settings[2]
+        let phase1 = gradient_settings[3]
+        let phase2 = gradient_settings[4]
+        let phase3 = gradient_settings[5]
+        let amp1 = gradient_settings[6]
+        let amp2 = gradient_settings[7]
+        let amp3 = gradient_settings[8]
+        let dc1 = gradient_settings[9]
+        let dc2 = gradient_settings[10]
+        let dc3 = gradient_settings[11]
+        let repetition = gradient_settings[12]
+        let gradient_speed = gradient_settings[13]
+        let t1 = gsap.timeline({repeat: -1, yoyo: true})
+            .to(words, {
+                red: 255,
+                duration: gradient_speed,
+                modifiers: {
+                    red: function (x) {
+                        for (let i = 0; i < total; i++) {
+                            let index = i + 25 + x * repetition;
+                            chars[i].style.color = sinebow(freq1, freq2, freq3, phase1, phase2, phase3, amp1, amp2, amp3, dc1, dc2, dc3, index);
+                            //chars[i].style.color = palette_to_rgb_string(palette(index))
+                        }
+                        return x;
+                    }
+                }
+            });
+        t1.play()
+        //setTimeout(animate, 2000, words, chars, total)
+        return container_div
+    }
+}
+
+    function wrapText(parent, letter, i) {
+        let span = document.createElement("span");
+        span.textContent = letter;
+        span.style.color = sinebow(1, 1, 1, 0, 2, 4, i + 25);
+        parent.appendChild(span);
+        return parent;
+    }
+
+    function sinebow(freq1, freq2, freq3, phase1, phase2, phase3, amp1, amp2, amp3, dc1, dc2, dc3, i) {
+        let width = 127;
+        let center = 128;
+        let r = Math.sin(Math.cos((freq1 * i + phase1)) * amp1 + dc1) * width + center;
+        let g = Math.sin(Math.cos((freq2 * i + phase2)) * amp2 + dc2) * width + center;
+        let b = Math.sin(Math.cos((freq3 * i + phase3)) * amp3 + dc3) * width + center;
+        return `rgb(${r >> 0},${g >> 0},${b >> 0})`;
+    }
+
 (async () => {
     'use strict';
 
@@ -698,6 +846,17 @@ function calculateAspectRatioFit(srcWidth, srcHeight, maxWidth, maxHeight) {
         general_settings_group.add_setting(chat_setting_header)
         let scrollback_buffer_setting = new Setting('scrollback_buffer', 'Gleichzeitig angezeigte Nachrichten', 'string', general_settings_group.get('name'), '50', ['50', '100', '150', 'Infinite'])
         general_settings_group.add_setting(scrollback_buffer_setting)
+        let appearance_settings_group = create_default_appearance_group_settings()
+        let macro_settings_group = new SettingsGroup('macros', 'Macros', undefined)
+        let auto_greet_settings_group = new SettingsGroup('auto_greet', 'Auto-Begrüßung', undefined)
+        settings_collection.add_group(general_settings_group)
+        settings_collection.add_group(appearance_settings_group)
+        settings_collection.add_group(macro_settings_group)
+        settings_collection.add_group(auto_greet_settings_group)
+        return settings_collection
+    }
+    
+    function create_default_appearance_group_settings(){
         let appearance_settings_group = new SettingsGroup('appearance', 'Darstellung', undefined)
         let maskotchen_header = new Setting('maskotchen_header', 'Maskotchen Einstellungen', 'section_header', appearance_settings_group.get('name'), 'Maskotchen Einstellungen', ['Maskotchen Einstellungen'])
         appearance_settings_group.add_setting(maskotchen_header)
@@ -711,6 +870,8 @@ function calculateAspectRatioFit(srcWidth, srcHeight, maxWidth, maxHeight) {
         appearance_settings_group.add_setting(rainbow_font_setting)
         let custom_font_setting = new Setting('custom_font_message', 'Schnörkel Schrift', 'boolean', appearance_settings_group.get('name'), false, [true, false])
         appearance_settings_group.add_setting(custom_font_setting)
+        let gradient_editor = new Setting('gradient_editor_setting', 'Gradient Editor', 'gradient_editor', appearance_settings_group.get('name'), [0.49919039475189, -0.5117558280294, -0.32327432886679, 1.59581002624346, 0.67053721217245, 0.59057536404286, 1.53298285985593, -0.69452576661133, 0.05368866945844, 0.25359328978243, 0.20218924455626, 0.06511179061981, 0.19087628, 0.19087628], [0.49919039475189, -0.5117558280294, -0.32327432886679, 1.59581002624346, 0.67053721217245, 0.59057536404286, 1.53298285985593, -0.69452576661133, 0.05368866945844, 0.25359328978243, 0.20218924455626, 0.06511179061981, 0.19087628, 0.19087628])
+        appearance_settings_group.add_setting(gradient_editor)
         let username_header = new Setting('username_header', 'Username Einstellungen', 'section_header', appearance_settings_group.get('name'), 'Username Einstellungen', ['Username Einstellungen'])
         appearance_settings_group.add_setting(username_header)
         let username_picture_setting = new Setting('username_picture', 'Username Icon An/Aus', 'boolean', appearance_settings_group.get('name'), true, [true, false])
@@ -719,13 +880,8 @@ function calculateAspectRatioFit(srcWidth, srcHeight, maxWidth, maxHeight) {
         appearance_settings_group.add_setting(username_picture_replace_gender_setting)
         let username_picture_choice_setting = new Setting('username_picture_choice', 'Username Icon Wahl', 'multi_choice_img_preview', appearance_settings_group.get('name'), "", emoji_list)
         appearance_settings_group.add_setting(username_picture_choice_setting)
-        let macro_settings_group = new SettingsGroup('macros', 'Macros', undefined)
-        let auto_greet_settings_group = new SettingsGroup('auto_greet', 'Auto-Begrüßung', undefined)
-        settings_collection.add_group(general_settings_group)
-        settings_collection.add_group(appearance_settings_group)
-        settings_collection.add_group(macro_settings_group)
-        settings_collection.add_group(auto_greet_settings_group)
-        return settings_collection
+        
+        return appearance_settings_group
     }
 
     function create_settings_window() {
@@ -1695,15 +1851,31 @@ function calculateAspectRatioFit(srcWidth, srcHeight, maxWidth, maxHeight) {
         let words = split.reduce(wrapText, container_div);
         let chars = words.children;
         let total = words.children.length;
+        let gradient_settings = settings.get('groups').get('appearance').get('loaded_settings').get('gradient_editor_setting').get('value')
+        let freq1 = gradient_settings[0]
+        let freq2 = gradient_settings[1]
+        let freq3 = gradient_settings[2]
+        let phase1 = gradient_settings[3]
+        let phase2 = gradient_settings[4]
+        let phase3 = gradient_settings[5]
+        let amp1 = gradient_settings[6]
+        let amp2 = gradient_settings[7]
+        let amp3 = gradient_settings[8]
+        let dc1 = gradient_settings[9]
+        let dc2 = gradient_settings[10]
+        let dc3 = gradient_settings[11]
+        let repetition = gradient_settings[12]
+        let gradient_speed = gradient_settings[13]
         let t1 = gsap.timeline({repeat: -1, yoyo: true})
             .to(words, {
                 red: 255,
-                duration: 5,
+                duration: gradient_speed,
                 modifiers: {
                     red: function (x) {
                         for (let i = 0; i < total; i++) {
-                            let index = i + 25 + x * 0.4;
-                            chars[i].style.color = sinebow(freq, freq, freq, 0, 2, 4, index);
+                            let index = i + 25 + x * repetition;
+                            chars[i].style.color = sinebow(freq1, freq2, freq3, phase1, phase2, phase3, amp1, amp2, amp3, dc1, dc2, dc3, index);
+                            //chars[i].style.color = palette_to_rgb_string(palette(index))
                         }
                         return x;
                     }
@@ -1714,23 +1886,22 @@ function calculateAspectRatioFit(srcWidth, srcHeight, maxWidth, maxHeight) {
         return container_div
     }
 
-    function wrapText(parent, letter, i) {
-        let span = document.createElement("span");
-        span.textContent = letter;
-        span.style.color = sinebow(freq, freq, freq, 0, 2, 4, i + 25);
-        parent.appendChild(span);
-        return parent;
+    function palette(t) {
+        let dc_offset = math.matrix([0.098, 0.058, 1.268]) // DC Offset
+        let amp = math.matrix([0.152, 0.843, 0.411]) // AMP
+        let frequency = math.matrix([3.358, 0.672, -1.778]) // Freq
+        let phase = math.matrix([-1.052, -0.718, -2.873]) // Phase
+        let c_times_t = math.dotMultiply(frequency, t)
+        let plus_d = math.add(c_times_t, phase)
+        let intermediate_vector = math.dotMultiply(plus_d, 6.28318)
+        return math.add(dc_offset, math.multiply(amp, math.matrix([math.subset(intermediate_vector, math.index([0])), math.subset(intermediate_vector, math.index([1])), math.subset(intermediate_vector, math.index([2]))])))
     }
 
-    function sinebow(freq1, freq2, freq3, phase1, phase2, phase3, i) {
-        let width = 127;
-        let center = 128;
-
-        let r = Math.sin(freq1 * i + phase1) * width + center;
-        let g = Math.sin(freq2 * i + phase2) * width + center;
-        let b = Math.sin(freq3 * i + phase3) * width + center;
-
-        return `rgb(${r >> 0},${g >> 0},${b >> 0})`;
+    function palette_to_rgb_string(palette){
+        let r = math.subset(palette, math.index([0]))
+        let g = math.subset(palette, math.index([1]))
+        let b = math.subset(palette, math.index([2]))
+        return `rgb(${r >> 0},${g >> 0},${b >> 0})`
     }
 
 })
