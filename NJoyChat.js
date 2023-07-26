@@ -1481,7 +1481,7 @@ function calculateAspectRatioFit(srcWidth, srcHeight, maxWidth, maxHeight) {
     }
 
     function chat_message_header_control_code_handler(message, options) {
-        if (!message.classList.contains('user')) {
+        if (message.classList === undefined || !message.classList.contains('user')) {
             return message
         }
         let gender_icon = message.querySelector('strong > j-gender-icon')
