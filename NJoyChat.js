@@ -1546,7 +1546,7 @@ function calculateAspectRatioFit(srcWidth, srcHeight, maxWidth, maxHeight) {
     }
 
     function handle_chat_message_removal(removedNodes) {
-        console.log('lol lmao')
+        console.log('lol lmao', removedNodes)
     }
 
     let zero_control_space = 8203
