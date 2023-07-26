@@ -589,40 +589,100 @@ class SettingItemDetailsMultipleChoice {
         let loaded_settings = await GM.getValue('settings')
         let settings_collection
         if (loaded_settings === undefined) {
-            settings_collection = new SettingsCollection(new Map())
-            let general_settings_group = new SettingsGroup('general', 'Allgemein', undefined)
-            let scrollback_buffer_setting = new Setting('scrollback_buffer', 'Gleichzeitig angezeigte Nachrichten', 'string', general_settings_group.get('name'), '50', ['50', '100', '150', 'Infinite'])
-            general_settings_group.add_setting(scrollback_buffer_setting)
-            let appearance_settings_group = new SettingsGroup('appearance', 'Darstellung', undefined)
-            let maskotchen_header = new Setting('maskotchen_header', 'Maskotchen Einstellungen', 'section_header', appearance_settings_group.get('name'), 'Maskotchen Einstellungen', ['Maskotchen Einstellungen'])
-            appearance_settings_group.add_setting(maskotchen_header)
-            let maskotchen_setting = new Setting('Maskotchen', 'Maskotchen', 'multi_choice', appearance_settings_group.get('name'), 'https://media.tenor.com/nRbxbNMYMF0AAAAi/stitch-run.gif', ['https://media.tenor.com/nRbxbNMYMF0AAAAi/stitch-run.gif', 'https://media.tenor.com/fSsxftCb8w0AAAAi/pikachu-running.gif', '//cfnimg.joyclub.de/smile/pegasus.gif', '//cfnimg.joyclub.de/smile/einhorn.gif'])
-            appearance_settings_group.add_setting(maskotchen_setting)
-            let maskotchen_enabled_setting = new Setting('maskotchen_enabled', 'Maskotchen An/Aus', 'boolean', appearance_settings_group.get('name'), true, [true, false])
-            appearance_settings_group.add_setting(maskotchen_enabled_setting)
-            let font_header = new Setting('font_header', 'Schrift Einstellungen', 'section_header', appearance_settings_group.get('name'), 'Schrift Einstellungen', ['Schrift Einstellungen'])
-            appearance_settings_group.add_setting(font_header)
-            let rainbow_font_setting = new Setting('rainbow_message', 'Regenbogen Schrift', 'boolean', appearance_settings_group.get('name'), true, [true, false])
-            appearance_settings_group.add_setting(rainbow_font_setting)
-            let custom_font_setting = new Setting('custom_font_message', 'Schnörkel Schrift', 'boolean', appearance_settings_group.get('name'), false, [true, false])
-            appearance_settings_group.add_setting(custom_font_setting)
-            let username_header = new Setting('username_header', 'Username Einstellungen', 'section_header', appearance_settings_group.get('name'), 'Username Einstellungen', ['Username Einstellungen'])
-            appearance_settings_group.add_setting(username_header)
-            let username_picture_setting = new Setting('username_picture', 'Username Icon An/Aus', 'boolean', appearance_settings_group.get('name'), true, [true, false])
-            appearance_settings_group.add_setting(username_picture_setting)
-            let username_picture_choice_setting = new Setting('username_picture_choice', 'Username Icon Wahl', 'string', appearance_settings_group.get('name'), "1", ["1", "2", "3", "4"])
-            appearance_settings_group.add_setting(username_picture_choice_setting)
-            let macro_settings_group = new SettingsGroup('macros', 'Macros', undefined)
-            let auto_greet_settings_group = new SettingsGroup('auto_greet', 'Auto-Begrüßung', undefined)
-            settings_collection.add_group(general_settings_group)
-            settings_collection.add_group(appearance_settings_group)
-            settings_collection.add_group(macro_settings_group)
-            settings_collection.add_group(auto_greet_settings_group)
+            settings_collection = create_default_settings()
         } else {
             settings_collection = SettingsCollection.fromJSON(JSON.parse(loaded_settings))
+            compare_settings(create_default_settings(), settings_collection)
         }
         console.log(settings_collection)
         //console.log(JSON.stringify(settings_collection))
+        return settings_collection
+    }
+
+    function compare_settings(original_settings, settings_to_compare){
+        compare_settings_node(original_settings, settings_to_compare, original_settings, settings_to_compare, original_settings, settings_to_compare, undefined)
+    }
+
+    function compare_settings_node(original_settings, settings_to_compare, original_node_parent, active_compare_parent, active_original_node, active_compare_node, key){
+        if (active_original_node instanceof Map) {
+            for (let original_key of active_original_node.keys()) {
+                if (active_compare_node.has(original_key)) {
+                    //console.log('Was map and had key. Recursing deeper: ', active_original_node, original_key)
+                    compare_settings_node(original_settings, settings_to_compare, active_original_node, active_compare_node, active_original_node.get(original_key), active_compare_node.get(original_key), original_key)
+                } else {
+                    //console.log("Was map and didn't have key. Copying...", original_key, active_original_node.get(original_key))
+                    active_compare_node.set(original_key, active_original_node.get(original_key))
+                }
+            }
+            // The order of map entries depends on insertion order. If we inserted a new key, it will be added to the end.
+            // We restore the structure of the original map by first copying to a buffer map, clearing, and then reinserting
+            // in the correct order of the original map (whose keys should all be within our new map). This has the added
+            // benefit of pruning the old map of any superfluous keys.
+            let buffer_map = new Map()
+            for (let compare_key of active_compare_node.keys()){
+                buffer_map.set(compare_key, active_compare_node.get(compare_key))
+            }
+            active_compare_node.clear()
+            for (let original_key of active_original_node.keys()){
+                active_compare_node.set(original_key, buffer_map.get(original_key))
+            }
+        } else {
+            if (active_original_node === active_compare_node){
+                //console.log('Same value', active_original_node)
+            } else{
+                //console.log('Values differed', active_original_node, active_compare_node)
+                if (key !== 'value'){
+                    //console.log("Key wasn't 'value', so we're overwriting.", key, original_node_parent.get(key))
+                    active_compare_parent.set(key, original_node_parent.get(key))
+                }
+            }
+        }
+
+    }
+
+    function compare_settings_level(original_settings, settings_to_compare, keys){
+        let original_node = original_settings
+        let node_to_compare = settings_to_compare
+        for (let key of keys){
+            original_node = original_node.get(key)
+            node_to_compare = node_to_compare.get(key)
+        }
+
+
+    }
+
+    function create_default_settings() {
+        let settings_collection = new SettingsCollection(new Map())
+        let general_settings_group = new SettingsGroup('general', 'Allgemein', undefined)
+        let chat_setting_header = new Setting('chat_setting_header', 'Chat Einstellungen', 'section_header', general_settings_group.get('name'), 'Chat Einstellungen', ['Chat Einstellungen'])
+        general_settings_group.add_setting(chat_setting_header)
+        let scrollback_buffer_setting = new Setting('scrollback_buffer', 'Gleichzeitig angezeigte Nachrichten', 'string', general_settings_group.get('name'), '50', ['50', '100', '150', 'Infinite'])
+        general_settings_group.add_setting(scrollback_buffer_setting)
+        let appearance_settings_group = new SettingsGroup('appearance', 'Darstellung', undefined)
+        let maskotchen_header = new Setting('maskotchen_header', 'Maskotchen Einstellungen', 'section_header', appearance_settings_group.get('name'), 'Maskotchen Einstellungen', ['Maskotchen Einstellungen'])
+        appearance_settings_group.add_setting(maskotchen_header)
+        let maskotchen_setting = new Setting('Maskotchen', 'Maskotchen', 'multi_choice', appearance_settings_group.get('name'), 'https://media.tenor.com/nRbxbNMYMF0AAAAi/stitch-run.gif', ['https://media.tenor.com/nRbxbNMYMF0AAAAi/stitch-run.gif', 'https://media.tenor.com/fSsxftCb8w0AAAAi/pikachu-running.gif', '//cfnimg.joyclub.de/smile/pegasus.gif', '//cfnimg.joyclub.de/smile/einhorn.gif'])
+        appearance_settings_group.add_setting(maskotchen_setting)
+        let maskotchen_enabled_setting = new Setting('maskotchen_enabled', 'Maskotchen An/Aus', 'boolean', appearance_settings_group.get('name'), true, [true, false])
+        appearance_settings_group.add_setting(maskotchen_enabled_setting)
+        let font_header = new Setting('font_header', 'Schrift Einstellungen', 'section_header', appearance_settings_group.get('name'), 'Schrift Einstellungen', ['Schrift Einstellungen'])
+        appearance_settings_group.add_setting(font_header)
+        let rainbow_font_setting = new Setting('rainbow_message', 'Regenbogen Schrift', 'boolean', appearance_settings_group.get('name'), true, [true, false])
+        appearance_settings_group.add_setting(rainbow_font_setting)
+        let custom_font_setting = new Setting('custom_font_message', 'Schnörkel Schrift', 'boolean', appearance_settings_group.get('name'), false, [true, false])
+        appearance_settings_group.add_setting(custom_font_setting)
+        let username_header = new Setting('username_header', 'Username Einstellungen', 'section_header', appearance_settings_group.get('name'), 'Username Einstellungen', ['Username Einstellungen'])
+        appearance_settings_group.add_setting(username_header)
+        let username_picture_setting = new Setting('username_picture', 'Username Icon An/Aus', 'boolean', appearance_settings_group.get('name'), true, [true, false])
+        appearance_settings_group.add_setting(username_picture_setting)
+        let username_picture_choice_setting = new Setting('username_picture_choice', 'Username Icon Wahl', 'string', appearance_settings_group.get('name'), "1", ["1", "2", "3", "4"])
+        appearance_settings_group.add_setting(username_picture_choice_setting)
+        let macro_settings_group = new SettingsGroup('macros', 'Macros', undefined)
+        let auto_greet_settings_group = new SettingsGroup('auto_greet', 'Auto-Begrüßung', undefined)
+        settings_collection.add_group(general_settings_group)
+        settings_collection.add_group(appearance_settings_group)
+        settings_collection.add_group(macro_settings_group)
+        settings_collection.add_group(auto_greet_settings_group)
         return settings_collection
     }
 
@@ -1590,7 +1650,7 @@ class SettingItemDetailsMultipleChoice {
             config_values.push(1)
             config_values.push(69)
         }
-        if (settings.get('groups').get('appearance').get('loaded_settings').get('username_picture').get('value')){
+        if (settings.get('groups').get('appearance').get('loaded_settings').get('username_picture').get('value')) {
             config_values.push(4)
             config_values.push(1)
             config_values.push(parseInt(settings.get('groups').get('appearance').get('loaded_settings').get('username_picture_choice').get('value')))
