@@ -703,7 +703,7 @@ function calculateAspectRatioFit(srcWidth, srcHeight, maxWidth, maxHeight) {
         let appearance_settings_group = new SettingsGroup('appearance', 'Darstellung', undefined)
         let maskotchen_header = new Setting('maskotchen_header', 'Maskotchen Einstellungen', 'section_header', appearance_settings_group.get('name'), 'Maskotchen Einstellungen', ['Maskotchen Einstellungen'])
         appearance_settings_group.add_setting(maskotchen_header)
-        let maskotchen_setting = new Setting('Maskotchen', 'Maskotchen', 'multi_choice', appearance_settings_group.get('name'), 'https://media.tenor.com/nRbxbNMYMF0AAAAi/stitch-run.gif', ['https://media.tenor.com/nRbxbNMYMF0AAAAi/stitch-run.gif', 'https://media.tenor.com/fSsxftCb8w0AAAAi/pikachu-running.gif', '//cfnimg.joyclub.de/smile/pegasus.gif', '//cfnimg.joyclub.de/smile/einhorn.gif'])
+        let maskotchen_setting = new Setting('Maskotchen', 'Maskotchen', 'multi_choice_img_preview', appearance_settings_group.get('name'), 'https://media.tenor.com/nRbxbNMYMF0AAAAi/stitch-run.gif', ['https://media.tenor.com/nRbxbNMYMF0AAAAi/stitch-run.gif', 'https://media.tenor.com/fSsxftCb8w0AAAAi/pikachu-running.gif', '//cfnimg.joyclub.de/smile/pegasus.gif', '//cfnimg.joyclub.de/smile/einhorn.gif'])
         appearance_settings_group.add_setting(maskotchen_setting)
         let maskotchen_enabled_setting = new Setting('maskotchen_enabled', 'Maskotchen An/Aus', 'boolean', appearance_settings_group.get('name'), true, [true, false])
         appearance_settings_group.add_setting(maskotchen_enabled_setting)
@@ -717,6 +717,8 @@ function calculateAspectRatioFit(srcWidth, srcHeight, maxWidth, maxHeight) {
         appearance_settings_group.add_setting(username_header)
         let username_picture_setting = new Setting('username_picture', 'Username Icon An/Aus', 'boolean', appearance_settings_group.get('name'), true, [true, false])
         appearance_settings_group.add_setting(username_picture_setting)
+        let username_picture_replace_gender_setting = new Setting('username_picture_replace_gender', 'Username Icon Statt Geschlecht', 'boolean', appearance_settings_group.get('name'), true, [true, false])
+        appearance_settings_group.add_setting(username_picture_replace_gender_setting)
         let username_picture_choice_setting = new Setting('username_picture_choice', 'Username Icon Wahl', 'multi_choice_img_preview', appearance_settings_group.get('name'), "", emoji_list)
         appearance_settings_group.add_setting(username_picture_choice_setting)
         let macro_settings_group = new SettingsGroup('macros', 'Macros', undefined)
@@ -1493,9 +1495,14 @@ function calculateAspectRatioFit(srcWidth, srcHeight, maxWidth, maxHeight) {
         emoji_img.onload = function () {
             resizeImage(this, 25, 9999)
         }
+        emoji_span.style.marginLeft = '5px'
         emoji_span.appendChild(emoji_img)
-        gender_icon.parentNode.appendChild(emoji_span)
-        gender_icon.parentNode.insertBefore(emoji_span, gender_icon)
+        if (settings.get('groups').get('appearance').get('loaded_settings').get('username_picture_replace_gender').get('value')) {
+            gender_icon.parentNode.replaceChild(emoji_span, gender_icon)
+        } else {
+            gender_icon.parentNode.appendChild(emoji_span)
+            gender_icon.parentNode.insertBefore(emoji_span, gender_icon)
+        }
 
         return message
     }
