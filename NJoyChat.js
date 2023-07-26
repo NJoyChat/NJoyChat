@@ -1236,11 +1236,12 @@ function calculateAspectRatioFit(srcWidth, srcHeight, maxWidth, maxHeight) {
             console.log(text);
             let words = text.split(' ');
             let converted_text = '';
+            let special_characters = ['*', '@', '#']
             for (let word_to_convert of words) {
-                if (word_to_convert[0] !== '@' && word_to_convert[0] !== '*' && word_to_convert[word_to_convert.length - 1] !== '@' && word_to_convert[word_to_convert.length - 1] !== '*') {
+                if (!special_characters.includes(word_to_convert[0]) && !special_characters.includes(word_to_convert[word_to_convert.length - 1])) {
                     converted_text += ' ' + convert_string_to_custom_font(word_to_convert)
                 } else {
-                    converted_text += word_to_convert
+                    converted_text += ' ' + word_to_convert
                 }
             }
             joychat_input_box.value = '';
