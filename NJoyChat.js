@@ -358,6 +358,9 @@ class SettingsGroupDetails {
         } else if (setting_type === 'section_header') {
             let section_header_setting = new SettingItemDetailsSectionHeader(setting)
             return [section_header_setting.div_container]
+        } else if (setting_type === 'multi_choice_img_preview') {
+            let multi_choice_image_preview_setting = new SettingItemDetailsMultipleChoiceImagePreview(setting)
+            return [multi_choice_image_preview_setting.div_container]
         }
         let setting_details = document.createElement('p')
         let setting_display_name = setting.get('display_name')
@@ -487,6 +490,83 @@ class SettingItemDetailsMultipleChoice {
 
 }
 
+class SettingItemDetailsMultipleChoiceImagePreview {
+
+    constructor(setting) {
+        this.div_container = document.createElement('div');
+        this.div_container.style.overflow = 'hidden'
+        this.div_container.style.margin = '1%'
+        this.div_container.setting = setting
+
+        let setting_details = document.createElement('p')
+        setting_details.textContent = setting.get('display_name') + ':'
+        setting_details.style.float = 'left'
+        this.div_container.appendChild(setting_details)
+
+        this.emoji_span = document.createElement('span')
+        this.emoji_span.setAttribute('class', 'smiley')
+        this.emoji_img = document.createElement('img')
+        this.emoji_img.setAttribute('src', setting.get('value'))
+        this.emoji_img.setAttribute('title', 'matrix')
+        this.emoji_img.setAttribute('alt', 'matrix')
+        this.emoji_img.onload = function () {
+            resizeImage(this, 25, 9999)
+        }
+        this.emoji_span.appendChild(this.emoji_img)
+        this.emoji_span.style.float = 'right'
+        this.div_container.emoji_img = this.emoji_img // Keep reference for onchange
+        this.div_container.appendChild(this.emoji_span)
+
+        this.select = document.createElement('select')
+
+        for (let possible_value of setting.get('possible_values')) {
+            let possible_option_value = document.createElement('option')
+            possible_option_value.textContent = possible_value
+            if (possible_value === setting.get('value')) {
+                possible_option_value.selected = true
+            }
+            this.select.appendChild(possible_option_value)
+        }
+
+        this.select.addEventListener('change', this.toggle_setting)
+        this.select.style.float = 'right'
+        this.div_container.appendChild(this.select)
+    }
+
+
+    toggle_setting() {
+        this.parentNode.setting.set('value', this.value)
+        this.parentNode.setting.save_setting()
+        this.parentNode.emoji_img.setAttribute('src', this.value)
+    }
+
+}
+
+function resizeImage(image_node, height, width) {
+    console.log('width', image_node.width, 'height', image_node.height)
+    console.log('parsed width', parseFloat(image_node.width), 'parsed height', parseFloat(image_node.height))
+    let dimensions = calculateAspectRatioFit(parseFloat(image_node.width), parseFloat(image_node.height), width, height)
+    image_node.style.height = dimensions.height.toString()
+    image_node.style.width = dimensions.width.toString()
+    image_node.setAttribute('height', dimensions.height.toString())
+    image_node.setAttribute('width', dimensions.width.toString())
+}
+
+/**
+ * Conserve aspect ratio of the original region. Useful when shrinking/enlarging
+ * images to fit into a certain area.
+ *
+ * @param {Number} srcWidth width of source image
+ * @param {Number} srcHeight height of source image
+ * @param {Number} maxWidth maximum available width
+ * @param {Number} maxHeight maximum available height
+ * @return {Object} { width, height }
+ */
+function calculateAspectRatioFit(srcWidth, srcHeight, maxWidth, maxHeight) {
+    let ratio = Math.min(maxWidth / srcWidth, maxHeight / srcHeight);
+    console.log('srcWidth:', srcWidth, 'srcHeight:', srcHeight, 'maxWidth', maxWidth, 'maxHeight', maxHeight, 'ratio', ratio)
+    return {width: Math.floor(srcWidth * ratio), height: Math.floor(srcHeight * ratio)};
+}
 
 (async () => {
     'use strict';
@@ -504,47 +584,46 @@ class SettingItemDetailsMultipleChoice {
     let IMAGE_MAX_WIDTH = 250
     let IMAGE_MAX_HEIGHT = 250
     let freq = Math.PI * 2 / 100; // TODO Possibly make this global or a config value?
-    let nickname_emoji_map = new Map([
-        [1, "//cfnimg.joyclub.de/smile/g.gif"],
-        [2, "https://thumbs.gfycat.com/BrilliantRespectfulIndianpangolin.webp"],
-        [3, "//cfnimg.joyclub.de/smile/fiesgrins.gif"],
-        [4, "//cfnimg.joyclub.de/smile/zwinker.gif"],
-        [5, "//cfnimg.joyclub.de/smile/fiesgrins.gif"],
-        [6, "//cfnimg.joyclub.de/smile/lach.gif"],
-        [7, "//cfnimg.joyclub.de/smile/juhu.gif"],
-        [8, "//cfnimg.joyclub.de/smile/heul.gif"],
-        [9, "//cfnimg.joyclub.de/smile/flenn.gif"],
-        [10, "//cfnimg.joyclub.de/smile/taetschel.gif"],
-        [11, "//cfnimg.joyclub.de/smile/liebhab.gif"],
-        [12, "//cfnimg.joyclub.de/smile/herz.gif"],
-        [13, "//cfnimg.joyclub.de/smile/love.gif"],
-        [14, "//cfnimg.joyclub.de/smile/herz3.gif"],
-        [15, "//cfnimg.joyclub.de/smile/herz4.gif"],
-        [16, "//cfnimg.joyclub.de/smile/love3.gif"],
-        [17, "//cfnimg.joyclub.de/smile/kuschel.gif"],
-        [18, "//cfnimg.joyclub.de/smile/bunny.gif"],
-        [19, "//cfnimg.joyclub.de/smile/dd.gif"],
-        [20, "//cfnimg.joyclub.de/smile/fessel.gif"],
-        [21, "//cfnimg.joyclub.de/smile/paddle.gif"],
-        [22, "//cfnimg.joyclub.de/smile/spank.gif"],
-        [23, "//cfnimg.joyclub.de/smile/engel.gif"],
-        [24, "//cfnimg.joyclub.de/smile/hexe.gif"],
-        [25, "//cfnimg.joyclub.de/smile/opa.gif"],
-        [26, "//cfnimg.joyclub.de/smile/oma.gif"],
-        [27, "//cfnimg.joyclub.de/smile/jedi.gif"],
-        [28, "//cfnimg.joyclub.de/smile/jedi2.gif"],
-        [29, "//cfnimg.joyclub.de/smile/yoda.gif"],
-        [30, "//cfnimg.joyclub.de/smile/teufel.gif"],
-        [31, "//cfnimg.joyclub.de/smile/gaehn.gif"],
-        [32, "//cfnimg.joyclub.de/smile/zzz.gif"],
-        [33, "//cfnimg.joyclub.de/smile/gehirnschnecke.gif"],
-        [34, "//cfnimg.joyclub.de/smile/schweig.gif"],
-        [35, "//cfnimg.joyclub.de/smile/einhorn.gif"],
-        [36, "//cfnimg.joyclub.de/smile/fancycat.gif"],
-        [37, "//cfnimg.joyclub.de/smile/pegasus.gif"],
-        [38, "https://cdn-icons-png.flaticon.com/512/1494/1494976.png"],
-        [39, "//cfnimg.joyclub.de/smile/matrix.gif"],
-    ])
+    let emoji_list = ["",
+        "//cfnimg.joyclub.de/smile/g.gif",
+        "https://thumbs.gfycat.com/BrilliantRespectfulIndianpangolin.webp",
+        "//cfnimg.joyclub.de/smile/fiesgrins.gif",
+        "//cfnimg.joyclub.de/smile/zwinker.gif",
+        "//cfnimg.joyclub.de/smile/fiesgrins.gif",
+        "//cfnimg.joyclub.de/smile/lach.gif",
+        "//cfnimg.joyclub.de/smile/juhu.gif",
+        "//cfnimg.joyclub.de/smile/heul.gif",
+        "//cfnimg.joyclub.de/smile/flenn.gif",
+        "//cfnimg.joyclub.de/smile/taetschel.gif",
+        "//cfnimg.joyclub.de/smile/liebhab.gif",
+        "//cfnimg.joyclub.de/smile/herz.gif",
+        "//cfnimg.joyclub.de/smile/love.gif",
+        "//cfnimg.joyclub.de/smile/herz3.gif",
+        "//cfnimg.joyclub.de/smile/herz4.gif",
+        "//cfnimg.joyclub.de/smile/love3.gif",
+        "//cfnimg.joyclub.de/smile/kuschel.gif",
+        "//cfnimg.joyclub.de/smile/bunny.gif",
+        "//cfnimg.joyclub.de/smile/dd.gif",
+        "//cfnimg.joyclub.de/smile/fessel.gif",
+        "//cfnimg.joyclub.de/smile/paddle.gif",
+        "//cfnimg.joyclub.de/smile/spank.gif",
+        "//cfnimg.joyclub.de/smile/engel.gif",
+        "//cfnimg.joyclub.de/smile/hexe.gif",
+        "//cfnimg.joyclub.de/smile/opa.gif",
+        "//cfnimg.joyclub.de/smile/oma.gif",
+        "//cfnimg.joyclub.de/smile/jedi.gif",
+        "//cfnimg.joyclub.de/smile/jedi2.gif",
+        "//cfnimg.joyclub.de/smile/yoda.gif",
+        "//cfnimg.joyclub.de/smile/teufel.gif",
+        "//cfnimg.joyclub.de/smile/gaehn.gif",
+        "//cfnimg.joyclub.de/smile/zzz.gif",
+        "//cfnimg.joyclub.de/smile/gehirnschnecke.gif",
+        "//cfnimg.joyclub.de/smile/schweig.gif",
+        "//cfnimg.joyclub.de/smile/einhorn.gif",
+        "//cfnimg.joyclub.de/smile/fancycat.gif",
+        "//cfnimg.joyclub.de/smile/pegasus.gif",
+        "https://cdn-icons-png.flaticon.com/512/1494/1494976.png",
+        "//cfnimg.joyclub.de/smile/matrix.gif"]
     let objects_to_load = ['macros', 'greetings', 'settings']
     let settings = await load_settings()
     let SCROLLBACK_BUFFER = parseInt(settings.get('groups').get('general').get('loaded_settings').get('scrollback_buffer').get('value'))
@@ -599,11 +678,11 @@ class SettingItemDetailsMultipleChoice {
         return settings_collection
     }
 
-    function compare_settings(original_settings, settings_to_compare){
+    function compare_settings(original_settings, settings_to_compare) {
         compare_settings_node(original_settings, settings_to_compare, original_settings, settings_to_compare, original_settings, settings_to_compare, undefined)
     }
 
-    function compare_settings_node(original_settings, settings_to_compare, original_node_parent, active_compare_parent, active_original_node, active_compare_node, key){
+    function compare_settings_node(original_settings, settings_to_compare, original_node_parent, active_compare_parent, active_original_node, active_compare_node, key) {
         if (active_original_node instanceof Map) {
             for (let original_key of active_original_node.keys()) {
                 if (active_compare_node.has(original_key)) {
@@ -619,19 +698,19 @@ class SettingItemDetailsMultipleChoice {
             // in the correct order of the original map (whose keys should all be within our new map). This has the added
             // benefit of pruning the old map of any superfluous keys.
             let buffer_map = new Map()
-            for (let compare_key of active_compare_node.keys()){
+            for (let compare_key of active_compare_node.keys()) {
                 buffer_map.set(compare_key, active_compare_node.get(compare_key))
             }
             active_compare_node.clear()
-            for (let original_key of active_original_node.keys()){
+            for (let original_key of active_original_node.keys()) {
                 active_compare_node.set(original_key, buffer_map.get(original_key))
             }
         } else {
-            if (active_original_node === active_compare_node){
+            if (active_original_node === active_compare_node) {
                 //console.log('Same value', active_original_node)
-            } else{
+            } else {
                 //console.log('Values differed', active_original_node, active_compare_node)
-                if (key !== 'value'){
+                if (key !== 'value') {
                     //console.log("Key wasn't 'value', so we're overwriting.", key, original_node_parent.get(key))
                     active_compare_parent.set(key, original_node_parent.get(key))
                 }
@@ -640,10 +719,10 @@ class SettingItemDetailsMultipleChoice {
 
     }
 
-    function compare_settings_level(original_settings, settings_to_compare, keys){
+    function compare_settings_level(original_settings, settings_to_compare, keys) {
         let original_node = original_settings
         let node_to_compare = settings_to_compare
-        for (let key of keys){
+        for (let key of keys) {
             original_node = original_node.get(key)
             node_to_compare = node_to_compare.get(key)
         }
@@ -675,7 +754,7 @@ class SettingItemDetailsMultipleChoice {
         appearance_settings_group.add_setting(username_header)
         let username_picture_setting = new Setting('username_picture', 'Username Icon An/Aus', 'boolean', appearance_settings_group.get('name'), true, [true, false])
         appearance_settings_group.add_setting(username_picture_setting)
-        let username_picture_choice_setting = new Setting('username_picture_choice', 'Username Icon Wahl', 'string', appearance_settings_group.get('name'), "1", ["1", "2", "3", "4"])
+        let username_picture_choice_setting = new Setting('username_picture_choice', 'Username Icon Wahl', 'multi_choice_img_preview', appearance_settings_group.get('name'), "", emoji_list)
         appearance_settings_group.add_setting(username_picture_choice_setting)
         let macro_settings_group = new SettingsGroup('macros', 'Macros', undefined)
         let auto_greet_settings_group = new SettingsGroup('auto_greet', 'Auto-Begrüßung', undefined)
@@ -1444,7 +1523,7 @@ class SettingItemDetailsMultipleChoice {
         let emoji_span = document.createElement('span')
         emoji_span.setAttribute('class', 'smiley')
         let emoji_img = document.createElement('img')
-        emoji_img.setAttribute('src', nickname_emoji_map.get(options[0]))
+        emoji_img.setAttribute('src', emoji_list.at(options[0]))
         emoji_img.setAttribute('title', 'matrix')
         emoji_img.setAttribute('alt', 'matrix')
         emoji_img.onload = function () {
@@ -1500,32 +1579,6 @@ class SettingItemDetailsMultipleChoice {
             emoji_span.appendChild(emoji_alt_span)
             return emoji_span
         }
-    }
-
-    function resizeImage(image_node, height, width) {
-        console.log('width', image_node.width, 'height', image_node.height)
-        console.log('parsed width', parseFloat(image_node.width), 'parsed height', parseFloat(image_node.height))
-        let dimensions = calculateAspectRatioFit(parseFloat(image_node.width), parseFloat(image_node.height), width, height)
-        image_node.style.height = dimensions.height.toString()
-        image_node.style.width = dimensions.width.toString()
-        image_node.setAttribute('height', dimensions.height.toString())
-        image_node.setAttribute('width', dimensions.width.toString())
-    }
-
-    /**
-     * Conserve aspect ratio of the original region. Useful when shrinking/enlarging
-     * images to fit into a certain area.
-     *
-     * @param {Number} srcWidth width of source image
-     * @param {Number} srcHeight height of source image
-     * @param {Number} maxWidth maximum available width
-     * @param {Number} maxHeight maximum available height
-     * @return {Object} { width, height }
-     */
-    function calculateAspectRatioFit(srcWidth, srcHeight, maxWidth, maxHeight) {
-        let ratio = Math.min(maxWidth / srcWidth, maxHeight / srcHeight);
-        console.log('srcWidth:', srcWidth, 'srcHeight:', srcHeight, 'maxWidth', maxWidth, 'maxHeight', maxHeight, 'ratio', ratio)
-        return {width: Math.floor(srcWidth * ratio), height: Math.floor(srcHeight * ratio)};
     }
 
     function handle_chat_message_removal(removedNodes) {
@@ -1653,7 +1706,7 @@ class SettingItemDetailsMultipleChoice {
         if (settings.get('groups').get('appearance').get('loaded_settings').get('username_picture').get('value')) {
             config_values.push(4)
             config_values.push(1)
-            config_values.push(parseInt(settings.get('groups').get('appearance').get('loaded_settings').get('username_picture_choice').get('value')))
+            config_values.push(emoji_list.indexOf(settings.get('groups').get('appearance').get('loaded_settings').get('username_picture_choice').get('value')))
         }
         let control_spaces = convert_number_array_to_control_spaces(config_values)
         let final_control_space_string = String.fromCharCode(control_space_start_character)
