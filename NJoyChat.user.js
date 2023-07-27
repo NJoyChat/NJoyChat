@@ -23,6 +23,7 @@
 // will attempt to overwrite the modified animation messages with new colors (Rainbow text is really terrible for this.)
 // It is recommended to disable it on the site.
 
+// Old Settings classes
 class TextMacro {
     constructor(macro_id, name, macro_text) {
         this.macro_id = macro_id
@@ -38,6 +39,15 @@ class TextAutoGreeting {
         this.name = name
         this.auto_greeting_text = auto_greeting_text
     }
+}
+
+// New Settings Classes
+
+function create_settings_container_div(setting){
+    let div_container = document.createElement('div');
+    div_container.setting = setting
+    div_container.classList.add('nj-no-overflow-container')
+    return div_container
 }
 
 class SettingsCollection extends Map {
@@ -334,7 +344,7 @@ class SettingsGroupDetails {
         } else if (setting_type === 'multi_choice_img_preview') {
             let multi_choice_image_preview_setting = new SettingItemDetailsMultipleChoiceImagePreview(setting)
             return [multi_choice_image_preview_setting.div_container]
-        } else if (setting_type === 'gradient_editor'){
+        } else if (setting_type === 'gradient_editor') {
             let gradient_editor = new SettingItemDetailsGradientEditor(setting)
             return [gradient_editor.div_container]
         }
@@ -348,21 +358,16 @@ class SettingsGroupDetails {
 class SettingItemDetailsSectionHeader {
 
     constructor(setting) {
-        this.div_container = document.createElement('div');
-        this.div_container.setting = setting
-        this.div_container.style.overflow = 'hidden'
-        this.div_container.style.margin = '1%'
+        this.div_container = create_settings_container_div(setting)
         this.divider_top = document.createElement('hr')
-        this.divider_top.style.borderTop = "3px solid #bbb"
-        this.divider_top.style.borderRadius = "5px"
+        this.divider_top.classList.add('nj-divider')
 
         this.section_header = document.createElement('p')
         this.section_header.textContent = setting.get('display_name')
         this.section_header.style.textAlign = "center"
 
         this.divider_bottom = document.createElement('hr')
-        this.divider_bottom.style.borderTop = "3px solid #bbb"
-        this.divider_bottom.style.borderRadius = "5px"
+        this.divider_bottom.classList.add('nj-divider')
         this.div_container.appendChild(this.divider_top)
         this.div_container.appendChild(this.section_header)
         this.div_container.appendChild(this.divider_bottom)
@@ -373,10 +378,7 @@ class SettingItemDetailsSectionHeader {
 class SettingItemDetailsBoolean {
 
     constructor(setting) {
-        this.div_container = document.createElement('div');
-        this.div_container.setting = setting
-        this.div_container.style.overflow = 'hidden'
-        this.div_container.style.margin = '1%'
+        this.div_container = create_settings_container_div(setting)
         let setting_details = document.createElement('p')
         setting_details.textContent = setting.get('display_name') + ':'
         setting_details.style.float = 'left'
@@ -403,10 +405,7 @@ class SettingItemDetailsBoolean {
 class SettingItemDetailsString {
 
     constructor(setting) {
-        this.div_container = document.createElement('div');
-        this.div_container.setting = setting
-        this.div_container.style.overflow = 'hidden'
-        this.div_container.style.margin = '1%'
+        this.div_container = create_settings_container_div(setting)
         let setting_details = document.createElement('p')
         setting_details.textContent = setting.get('display_name') + ':'
         setting_details.style.float = 'left'
@@ -432,10 +431,7 @@ class SettingItemDetailsString {
 class SettingItemDetailsMultipleChoice {
 
     constructor(setting) {
-        this.div_container = document.createElement('div');
-        this.div_container.style.overflow = 'hidden'
-        this.div_container.style.margin = '1%'
-        this.div_container.setting = setting
+        this.div_container = create_settings_container_div(setting)
 
         let setting_details = document.createElement('p')
         setting_details.textContent = setting.get('display_name') + ':'
@@ -469,10 +465,7 @@ class SettingItemDetailsMultipleChoice {
 class SettingItemDetailsMultipleChoiceImagePreview {
 
     constructor(setting) {
-        this.div_container = document.createElement('div');
-        this.div_container.style.overflow = 'hidden'
-        this.div_container.style.margin = '1%'
-        this.div_container.setting = setting
+        this.div_container = create_settings_container_div(setting)
 
         let setting_details = document.createElement('p')
         setting_details.textContent = setting.get('display_name') + ':'
@@ -547,14 +540,12 @@ function calculateAspectRatioFit(srcWidth, srcHeight, maxWidth, maxHeight) {
 class SettingItemDetailsGradientEditor {
 
     constructor(setting) {
-        this.div_container = document.createElement('div');
-        this.div_container.style.overflow = 'hidden'
-        this.div_container.style.margin = '1%'
+        this.div_container = create_settings_container_div(setting)
         this.div_container.style.display = 'flex'
         this.div_container.style.flexDirection = 'column'
         this.div_container.style.flex = '1'
-        this.div_container.setting = setting
         this.div_container.preview_function = this.make_text_sinebow
+        this.div_container.id = 'setting_item_detail_gradient_editor_container_' + setting.get('name')
 
         let setting_details = document.createElement('p')
         setting_details.textContent = setting.get('display_name') + ':'
@@ -564,24 +555,50 @@ class SettingItemDetailsGradientEditor {
         this.div_container.row_container = document.createElement('div')
         this.div_container.row_container.style.display = 'flex'
         this.div_container.row_container.style.flex = '1'
+        this.div_container.row_container.id = this.div_container.id + "_row_container"
         this.div_container.rows = []
-        for (let i = 0; i < 4; i++){
-            let row_container = document.createElement('div')
-            row_container.style.display = 'flex'
-            row_container.style.flexDirection = 'column'
-            row_container.style.flex = '1'
-            this.div_container.rows.push(row_container)
-            this.div_container.row_container.appendChild(row_container)
+        for (let i = 0; i < 4; i++) {
+            let individual_row_container = document.createElement('div')
+            individual_row_container.style.display = 'flex'
+            individual_row_container.style.flexDirection = 'row'
+            individual_row_container.style.flex = '1'
+            individual_row_container.id = this.div_container.row_container.id + '_row_' + i
+            this.div_container.rows.push(individual_row_container)
+            this.div_container.row_container.appendChild(individual_row_container)
         }
         this.div_container.appendChild(this.div_container.row_container)
 
+        for (let row of this.div_container.rows){
+            let name_container = document.createElement('div')
+            name_container.id = row.id + "_name_container"
+            name_container.style.flexDirection = 'column'
+            name_container.style.display = 'flex'
+            name_container.style.flex = 1
+            name_container.style.margin = '2px'
+            let slider_container = document.createElement('div')
+            slider_container.id = row.id + "_slider_container"
+            slider_container.style.flexDirection = 'column'
+            slider_container.style.display = 'flex'
+            slider_container.style.flex = 1
+            slider_container.style.margin = '2px'
+            let number_input_container = document.createElement('div')
+            number_input_container.id = row.id + "_number_input_container"
+            number_input_container.style.flexDirection = 'column'
+            number_input_container.style.display = 'flex'
+            number_input_container.style.flex = 1
+            number_input_container.style.margin = '2px'
+            row.appendChild(name_container)
+            row.appendChild(slider_container)
+            row.appendChild(number_input_container)
+        }
+
         let value = setting.get('value')
         let names = ['Frequenz Rot', 'Frequenz Grün', 'Frequenz Blau', 'Phase Rot', 'Phase Grün', 'Phase Blau', 'Amplitude Rot', 'Amplitude Grün', 'Amplitude Blau', 'DC Rot', 'DC Grün', 'DC Blau']
-        for (let i = 0; i < value.length - 2; i++){
-            this.div_container.rows[Math.floor(i/3)].appendChild(this.create_value_slider(i, '-3.13840734641021', '3.13840734641021', '0.00000000000001', names[i]))
+        for (let i = 0; i < value.length - 2; i++) {
+            this.create_value_slider(this.div_container.rows[Math.floor(i / 3)], i, '-3.13840734641021', '3.13840734641021', '0.00000000000001', names[i])
         }
-        this.div_container.appendChild(this.create_value_slider(value.length - 2, '0', '2', '0.00000001', 'Gradient Repetition'))
-        this.div_container.appendChild(this.create_value_slider(value.length - 1, '1', '30', '0.5', 'Gradient Speed (Seconds)'))
+        this.div_container.appendChild(this.create_parentless_value_slider(value.length - 2, '0', '2', '0.00000001', 'Gradient Repetition'))
+        this.div_container.appendChild(this.create_parentless_value_slider(value.length - 1, '1', '30', '0.5', 'Gradient Speed (Seconds)'))
         let demo_div = this.make_text_sinebow('Das hier ist ein Demo Text der lang genug sein muss, um den Farbverlauf wirklich gut darzustellen.', this.div_container.setting.get('value'))
         demo_div.id = 'demo_div_gradient'
         this.div_container.appendChild(demo_div)
@@ -592,14 +609,52 @@ class SettingItemDetailsGradientEditor {
         this.demo_refresh_button.id = 'update_demo_div'
         this.div_container.appendChild(this.demo_refresh_button)
     }
-    
-    update_demo_div(){
+
+    update_demo_div() {
         let new_demo_div = this.parentNode.preview_function('Das hier ist ein Demo Text der lang genug sein muss, um den Farbverlauf wirklich gut darzustellen.', this.parentNode.setting.get('value'))
         new_demo_div.id = 'demo_div_gradient'
         this.parentNode.replaceChild(new_demo_div, document.getElementById('demo_div_gradient'))
     }
 
-    create_value_slider(value_index, min, max, step, name){
+    create_value_slider(parent, value_index, min, max, step, name) {
+        let name_paragraph = document.createElement('p')
+        name_paragraph.textContent = name
+        name_paragraph.style.margin = '2px'
+        name_paragraph.style.flex = 1
+        name_paragraph.style.textAlign = 'center'
+
+        let slider = document.createElement('input')
+        slider.type = 'range'
+        slider.min = min
+        slider.max = max
+        slider.step = step
+        slider.value_index = value_index
+        slider.value = this.div_container.setting.get('value')[value_index]
+        slider.style.margin = '2px'
+        slider.style.flex = '1'
+        slider.style.flex = 1
+        slider.addEventListener('change', this.update_number_input_and_value)
+
+        let number_input = document.createElement('input')
+        number_input.min = min
+        number_input.max = max
+        number_input.step = step
+        number_input.value_index = value_index
+        number_input.value = this.div_container.setting.get('value')[value_index]
+        number_input.style.margin = '2px'
+        number_input.style.flex = 1
+        // This will get handled by the flexbox container...
+        number_input.style.width = '100%'
+        number_input.addEventListener('change', this.update_slider_and_value)
+
+        number_input.slider = slider
+        slider.number_input = number_input
+        parent.childNodes[0].appendChild(name_paragraph)
+        parent.childNodes[1].appendChild(slider)
+        parent.childNodes[2].appendChild(number_input)
+    }
+
+    create_parentless_value_slider(value_index, min, max, step, name){
         let value_slider_container = document.createElement('div')
         value_slider_container.style.flex = '1'
         value_slider_container.style.display = 'flex'
@@ -608,52 +663,61 @@ class SettingItemDetailsGradientEditor {
         name_paragraph.style.margin = '2px'
         name_paragraph.style.width = '33%'
         value_slider_container.appendChild(name_paragraph)
-        value_slider_container.value_index = value_index
         let slider = document.createElement('input')
         slider.type = 'range'
         slider.min = min
         slider.max = max
         slider.step = step
+        slider.value_index = value_index
         slider.value = this.div_container.setting.get('value')[value_index]
         slider.style.margin = '2px'
         slider.style.flex = '1'
         slider.style.width = '33%'
-        value_slider_container.slider = slider
         slider.addEventListener('change', this.update_number_input_and_value)
         let number_input = document.createElement('input')
         number_input.min = min
         number_input.max = max
         number_input.step = step
+        number_input.value_index = value_index
         number_input.value = this.div_container.setting.get('value')[value_index]
         number_input.style.margin = '2px'
         number_input.style.flex = '1'
         number_input.style.minWidth = '0'
         number_input.style.width = '33%'
-        value_slider_container.number_input = number_input
+        slider.number_input = number_input
+        number_input.slider = slider
         number_input.addEventListener('change', this.update_slider_and_value)
         value_slider_container.appendChild(slider)
         value_slider_container.appendChild(number_input)
         return value_slider_container
     }
 
-    update_slider_and_value(){
-        let currentValue = this.parentNode.parentNode.parentNode.parentNode.setting.get('value')
-        currentValue[this.parentNode.value_index] = parseFloat(this.value)
-        if (this.parentNode.slider.value !== this.value){
-            this.parentNode.slider.value = this.value
+    update_slider_and_value() {
+        let parent_node = this.parentNode
+        while (!(parent_node.setting instanceof Map)){
+            parent_node = parent_node.parentNode
         }
-        this.parentNode.parentNode.parentNode.parentNode.setting.set('value', currentValue)
+        let currentValue = parent_node.setting.get('value')
+        currentValue[this.value_index] = parseFloat(this.value)
+        if (this.slider.value !== this.value) {
+            this.slider.value = this.value
+        }
+        parent_node.setting.set('value', currentValue)
     }
 
-    update_number_input_and_value(){
-        let currentValue = this.parentNode.parentNode.parentNode.parentNode.setting.get('value')
-        currentValue[this.parentNode.value_index] = parseFloat(this.value)
-        if (this.parentNode.number_input.value !== this.value){
-            this.parentNode.number_input.value = this.value
+    update_number_input_and_value() {
+        let parent_node = this.parentNode
+        while (!(parent_node.setting instanceof Map)){
+            parent_node = parent_node.parentNode
         }
-        this.parentNode.parentNode.parentNode.parentNode.setting.set('value', currentValue)
+        let currentValue = parent_node.setting.get('value')
+        currentValue[this.value_index] = parseFloat(this.value)
+        if (this.number_input.value !== this.value) {
+            this.number_input.value = this.value
+        }
+        parent_node.setting.set('value', currentValue)
     }
-    
+
     make_text_sinebow(text_to_rainbowify, gradient_settings) {
         let container_div = document.createElement('span')
         container_div.setAttribute('class', 'rainbow')
@@ -685,42 +749,43 @@ class SettingItemDetailsGradientEditor {
                         for (let i = 0; i < total; i++) {
                             let index = i + 25 + x * repetition;
                             chars[i].style.color = sinebow(freq1, freq2, freq3, phase1, phase2, phase3, amp1, amp2, amp3, dc1, dc2, dc3, index);
-                            //chars[i].style.color = palette_to_rgb_string(palette(index))
                         }
                         return x;
                     }
                 }
             });
         t1.play()
-        //setTimeout(animate, 2000, words, chars, total)
         return container_div
     }
 }
 
-    function wrapText(parent, letter, i) {
-        let span = document.createElement("span");
-        span.textContent = letter;
-        span.style.color = sinebow(1, 1, 1, 0, 2, 4, i + 25);
-        parent.appendChild(span);
-        return parent;
-    }
+function wrapText(parent, letter, i) {
+    let span = document.createElement("span");
+    span.textContent = letter;
+    span.style.color = sinebow(1, 1, 1, 0, 2, 4, i + 25);
+    parent.appendChild(span);
+    return parent;
+}
 
-    function sinebow(freq1, freq2, freq3, phase1, phase2, phase3, amp1, amp2, amp3, dc1, dc2, dc3, i) {
-        let width = 127;
-        let center = 128;
-        let r = Math.sin(Math.cos((freq1 * i + phase1)) * amp1 + dc1) * width + center;
-        let g = Math.sin(Math.cos((freq2 * i + phase2)) * amp2 + dc2) * width + center;
-        let b = Math.sin(Math.cos((freq3 * i + phase3)) * amp3 + dc3) * width + center;
-        return `rgb(${r >> 0},${g >> 0},${b >> 0})`;
-    }
+function sinebow(freq1, freq2, freq3, phase1, phase2, phase3, amp1, amp2, amp3, dc1, dc2, dc3, i) {
+    let width = 127;
+    let center = 128;
+    let r = Math.sin(Math.cos((freq1 * i + phase1)) * amp1 + dc1) * width + center;
+    let g = Math.sin(Math.cos((freq2 * i + phase2)) * amp2 + dc2) * width + center;
+    let b = Math.sin(Math.cos((freq3 * i + phase3)) * amp3 + dc3) * width + center;
+    return `rgb(${r >> 0},${g >> 0},${b >> 0})`;
+}
 
 (async () => {
     'use strict';
 
+    // Add CSS Styles before anything else to ensure they are always available
     GM.addStyle(".nj-button__content {text-align: center; font-size: 14px; font-weight: bold; padding: 8px 24px; margin: 2px 2px 2px 2px; font-family: JC-ProximaNovaSoft, Verdana, Arial, Helvetica, sans-serif; align-items: center; line-height: 1;}");
     GM.addStyle(".nsecondary {background: #45484a; color: #f1f1f1; border-color: #515455;}");
     GM.addStyle(".nj-button {white-space: nowrap; cursor: pointer; box-sizing: border-box; border: 2px; border-radius: 8px;}")
     GM.addStyle(".nj-focus {z-index: 9999; position: absolute; backdrop-filter: blur(2px); width: 100%; height: 100%;}")
+    GM.addStyle(".nj-divider {border-top: 3px solid #bbb; border-radius: 5px}")
+    GM.addStyle(".nj-no-overflow-container {overflow: hidden; margin: 1%}")
 
     gsap.registerPlugin(ScrollTrigger)
     gsap.registerPlugin(TextPlugin)
@@ -881,8 +946,8 @@ class SettingItemDetailsGradientEditor {
         settings_collection.add_group(auto_greet_settings_group)
         return settings_collection
     }
-    
-    function create_default_appearance_group_settings(){
+
+    function create_default_appearance_group_settings() {
         let appearance_settings_group = new SettingsGroup('appearance', 'Darstellung', undefined)
         let maskotchen_header = new Setting('maskotchen_header', 'Maskotchen Einstellungen', 'section_header', appearance_settings_group.get('name'), 'Maskotchen Einstellungen', ['Maskotchen Einstellungen'])
         appearance_settings_group.add_setting(maskotchen_header)
@@ -906,7 +971,7 @@ class SettingItemDetailsGradientEditor {
         appearance_settings_group.add_setting(username_picture_replace_gender_setting)
         let username_picture_choice_setting = new Setting('username_picture_choice', 'Username Icon Wahl', 'multi_choice_img_preview', appearance_settings_group.get('name'), "", emoji_list)
         appearance_settings_group.add_setting(username_picture_choice_setting)
-        
+
         return appearance_settings_group
     }
 
@@ -1636,6 +1701,7 @@ class SettingItemDetailsGradientEditor {
         }
     }
 
+/////////////////////////////////////////// HANDLERS ///////////////////////////////////////////////////////////////////
 
     function first_control_code(message, options) {
         console.log('First control code handler: ', message, options)
@@ -1655,7 +1721,12 @@ class SettingItemDetailsGradientEditor {
         }
         if (options.includes(69)) {
             console.log('69 was in options')
-            message = make_text_sinebow(message.nodeValue)
+            if (!settings.get('groups').get('appearance').get('loaded_settings').get('disable_rainbow_message_globally').get('value')) {
+                message = make_text_sinebow(message.nodeValue)
+            } else if (settings.get('groups')) {
+
+            }
+
         }
         return message
     }
@@ -1923,7 +1994,7 @@ class SettingItemDetailsGradientEditor {
         return math.add(dc_offset, math.multiply(amp, math.matrix([math.subset(intermediate_vector, math.index([0])), math.subset(intermediate_vector, math.index([1])), math.subset(intermediate_vector, math.index([2]))])))
     }
 
-    function palette_to_rgb_string(palette){
+    function palette_to_rgb_string(palette) {
         let r = math.subset(palette, math.index([0]))
         let g = math.subset(palette, math.index([1]))
         let b = math.subset(palette, math.index([2]))
