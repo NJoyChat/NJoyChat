@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         NJoyChat
 // @namespace    https://www.joyclub.de/chat/login/
-// @version      Alpha-v17
+// @version      Alpha-v18
 // @description  Improves JoyChat with additional utilities.
 // @author       NJoyChat Team
 // @match        https://www.joyclub.de/chat/login/
@@ -795,6 +795,7 @@ function sinebow(freq1, freq2, freq3, phase1, phase2, phase3, amp1, amp2, amp3, 
     let IMAGE_MAX_WIDTH = 250
     let IMAGE_MAX_HEIGHT = 250
     let freq = Math.PI * 2 / 100; // TODO Possibly make this global or a config value?
+    let username_self = "Thatnextdoorguy"
     let emoji_list = ["",
         "//cfnimg.joyclub.de/smile/g.gif",
         "https://thumbs.gfycat.com/BrilliantRespectfulIndianpangolin.webp",
@@ -959,6 +960,10 @@ function sinebow(freq1, freq2, freq3, phase1, phase2, phase3, amp1, amp2, amp3, 
         appearance_settings_group.add_setting(font_header)
         let rainbow_font_setting = new Setting('rainbow_message', 'Regenbogen Schrift', 'boolean', appearance_settings_group.get('name'), true, [true, false])
         appearance_settings_group.add_setting(rainbow_font_setting)
+        let rainbow_font_disable_globally_setting = new Setting('disable_rainbow_message_globally', 'Regenbogen Schrift Aus (Global)', 'boolean', appearance_settings_group.get('name'), false, [true, false])
+        appearance_settings_group.add_setting(rainbow_font_disable_globally_setting)
+        let rainbow_font_disable_externally_setting = new Setting('disable_rainbow_message_externally', 'Regenbogen Schrift Aus (Andere)', 'boolean', appearance_settings_group.get('name'), false, [true, false])
+        appearance_settings_group.add_setting(rainbow_font_disable_externally_setting)
         let custom_font_setting = new Setting('custom_font_message', 'Schnörkel Schrift', 'boolean', appearance_settings_group.get('name'), false, [true, false])
         appearance_settings_group.add_setting(custom_font_setting)
         let gradient_editor = new Setting('gradient_editor_setting', 'Gradient Editor', 'gradient_editor', appearance_settings_group.get('name'), [0.49919039475189, -0.5117558280294, -0.32327432886679, 1.59581002624346, 0.67053721217245, 0.59057536404286, 1.53298285985593, -0.69452576661133, 0.05368866945844, 0.25359328978243, 0.20218924455626, 0.06511179061981, 0.19087628, 0.19087628], [0.49919039475189, -0.5117558280294, -0.32327432886679, 1.59581002624346, 0.67053721217245, 0.59057536404286, 1.53298285985593, -0.69452576661133, 0.05368866945844, 0.25359328978243, 0.20218924455626, 0.06511179061981, 0.19087628, 0.19087628])
@@ -1721,14 +1726,21 @@ function sinebow(freq1, freq2, freq3, phase1, phase2, phase3, amp1, amp2, amp3, 
         }
         if (options.includes(69)) {
             console.log('69 was in options')
-            if (!settings.get('groups').get('appearance').get('loaded_settings').get('disable_rainbow_message_globally').get('value')) {
+            if (settings.get('groups').get('appearance').get('loaded_settings').get('disable_rainbow_message_globally').get('value')) {
+
+            } else if (settings.get('groups').get('appearance').get('loaded_settings').get('disable_rainbow_message_externally').get('value')) {
+                if (extract_user_from_message(message) === username_self){
+                    message = make_text_sinebow(message.nodeValue)
+                }
+            } else {
                 message = make_text_sinebow(message.nodeValue)
-            } else if (settings.get('groups')) {
-
             }
-
         }
         return message
+    }
+
+    function extract_user_from_message(message){
+        return message.parentNode.querySelector('.user > strong').textContent
     }
 
     function chat_message_header_control_code_handler(message, options) {
