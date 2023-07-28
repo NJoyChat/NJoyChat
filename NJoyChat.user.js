@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         NJoyChat
 // @namespace    https://www.joyclub.de/chat/login/
-// @version      Alpha-v18
+// @version      Alpha-v19
 // @description  Improves JoyChat with additional utilities.
 // @author       NJoyChat Team
 // @match        https://www.joyclub.de/chat/login/
@@ -24,6 +24,9 @@
 // It is recommended to disable it on the site.
 
 // Old Settings classes
+
+let precomputed_sinebow = undefined
+
 class TextMacro {
     constructor(macro_id, name, macro_text) {
         this.macro_id = macro_id
@@ -611,6 +614,7 @@ class SettingItemDetailsGradientEditor {
     }
 
     update_demo_div() {
+        precomputed_sinebow = undefined
         let new_demo_div = this.parentNode.preview_function('Das hier ist ein Demo Text der lang genug sein muss, um den Farbverlauf wirklich gut darzustellen.', this.parentNode.setting.get('value'))
         new_demo_div.id = 'demo_div_gradient'
         this.parentNode.replaceChild(new_demo_div, document.getElementById('demo_div_gradient'))
@@ -743,12 +747,25 @@ class SettingItemDetailsGradientEditor {
         let t1 = gsap.timeline({repeat: -1, yoyo: true})
             .to(words, {
                 red: 255,
+                step: 1,
                 duration: gradient_speed,
                 modifiers: {
                     red: function (x) {
                         for (let i = 0; i < total; i++) {
                             let index = i + 25 + x * repetition;
-                            chars[i].style.color = sinebow(freq1, freq2, freq3, phase1, phase2, phase3, amp1, amp2, amp3, dc1, dc2, dc3, index);
+                            index = +index.toFixed(2)
+                            if (precomputed_sinebow === undefined){
+                                precomputed_sinebow = new Map()
+                                precomputed_sinebow.set(index, sinebow(freq1, freq2, freq3, phase1, phase2, phase3, amp1, amp2, amp3, dc1, dc2, dc3, index))
+                            }
+                            if (precomputed_sinebow.has(index)){
+                                chars[i].style.color = precomputed_sinebow.get(index);
+                            } else {
+                                let computed_sinebow = sinebow(freq1, freq2, freq3, phase1, phase2, phase3, amp1, amp2, amp3, dc1, dc2, dc3, index)
+                                precomputed_sinebow.set(index, computed_sinebow)
+                                chars[i].style.color = computed_sinebow
+                            }
+
                         }
                         return x;
                     }
@@ -1978,20 +1995,30 @@ function sinebow(freq1, freq2, freq3, phase1, phase2, phase3, amp1, amp2, amp3, 
         let t1 = gsap.timeline({repeat: -1, yoyo: true})
             .to(words, {
                 red: 255,
+                step: 1,
                 duration: gradient_speed,
                 modifiers: {
                     red: function (x) {
                         for (let i = 0; i < total; i++) {
                             let index = i + 25 + x * repetition;
-                            chars[i].style.color = sinebow(freq1, freq2, freq3, phase1, phase2, phase3, amp1, amp2, amp3, dc1, dc2, dc3, index);
-                            //chars[i].style.color = palette_to_rgb_string(palette(index))
+                            index = +index.toFixed(2)
+                            if (precomputed_sinebow === undefined){
+                                precomputed_sinebow = new Map()
+                                precomputed_sinebow.set(index, sinebow(freq1, freq2, freq3, phase1, phase2, phase3, amp1, amp2, amp3, dc1, dc2, dc3, index))
+                            }
+                            if (precomputed_sinebow.has(index)){
+                                chars[i].style.color = precomputed_sinebow.get(index);
+                            } else {
+                                let computed_sinebow = sinebow(freq1, freq2, freq3, phase1, phase2, phase3, amp1, amp2, amp3, dc1, dc2, dc3, index)
+                                precomputed_sinebow.set(index, computed_sinebow)
+                                chars[i].style.color = computed_sinebow
+                            }
                         }
                         return x;
                     }
                 }
             });
         t1.play()
-        //setTimeout(animate, 2000, words, chars, total)
         return container_div
     }
 
