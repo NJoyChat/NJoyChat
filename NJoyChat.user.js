@@ -27,11 +27,32 @@
 
 let precomputed_sinebows = new Map()
 
-class TextMacro {
+class TextMacro extends Map {
     constructor(macro_id, name, macro_text) {
-        this.macro_id = macro_id
-        this.name = name
-        this.macro_text = macro_text
+        super();
+        this.set('macro_id', macro_id)
+        this.set('name', name)
+        this.set('display_name', name)
+        this.set('macro_text', macro_text)
+    }
+
+    static fromJSON(json) {
+        const text_macro = new TextMacro();
+
+        text_macro.set('macro_id', json.macro_id)
+        text_macro.set('name', json.name)
+        text_macro.set('display_name', json.display_name)
+        text_macro.set('macro_text', json.macro_text)
+        return text_macro;
+    }
+
+    toJSON() {
+        return {
+            macro_id: this.get('macro_id'),
+            name: this.get('name'),
+            display_name: this.get('display_name'),
+            macro_text: this.get('macro_text'),
+        }
     }
 }
 
@@ -350,6 +371,9 @@ class SettingsGroupDetails {
         } else if (setting_type === 'gradient_editor') {
             let gradient_editor = new SettingItemDetailsGradientEditor(setting)
             return [gradient_editor.div_container]
+        } else if (setting_type === 'text_editor_macro') {
+            let macro_editor = new SettingItemDetailsTextEditor(setting)
+            return [macro_editor.div_container]
         }
         let setting_details = document.createElement('p')
         let setting_display_name = setting.get('display_name')
@@ -813,6 +837,198 @@ function sinebow(freq1, freq2, freq3, phase1, phase2, phase3, amp1, amp2, amp3, 
     return `rgb(${r >> 0},${g >> 0},${b >> 0})`;
 }
 
+class SettingItemDetailsTextEditor {
+
+    constructor(setting) {
+        this.div_container = create_settings_container_div(setting)
+        this.div_container.style.display = 'flex'
+        this.div_container.style.flexDirection = 'column'
+        this.div_container.style.flex = '1'
+        this.div_container.id = 'setting_item_detail_text_editor_container_' + setting.get('name')
+
+        let setting_details = document.createElement('p')
+        setting_details.textContent = setting.get('display_name') + ':'
+        setting_details.style.float = 'left'
+        this.div_container.appendChild(setting_details)
+
+        let macros = setting.get('value')
+        let loaded_macros = []
+        for (let macro of macros) {
+            loaded_macros.push(TextMacro.fromJSON(JSON.parse(macro)))
+        }
+
+        this.select = document.createElement('select')
+
+        if (loaded_macros.length === 0) {
+            let new_macro_option = document.createElement('option')
+            new_macro_option.textContent = ''
+            new_macro_option.value_index = -2
+            this.select.appendChild(new_macro_option)
+        } else {
+            for (let i = 0; i < loaded_macros.length; i++) {
+                let possible_option_value = document.createElement('option')
+                possible_option_value.textContent = loaded_macros[i].get('display_name')
+                possible_option_value.value_index = i
+                this.select.appendChild(possible_option_value)
+            }
+        }
+
+        let new_macro_option = document.createElement('option')
+        new_macro_option.textContent = 'Create New Macro'
+        new_macro_option.value_index = -1
+        this.select.appendChild(new_macro_option)
+
+        this.select.addEventListener('change', this.toggle_setting)
+        this.select.style.float = 'right'
+        this.div_container.select = this.select
+        // Pass function references to child elements in an insane way because javascript chose violence.
+        this.div_container.set_editor_fields = this.set_editor_fields
+        this.div_container.clear_editor_fields = this.clear_editor_fields
+        this.div_container.appendChild(this.select)
+
+        this.delete_macro_button = document.createElement('button')
+        this.delete_macro_button.textContent = 'Delete Macro'
+        this.delete_macro_button.setAttribute('class', " nj-button__content nsecondary nj-button")
+        this.delete_macro_button.addEventListener('click', this.delete_macro)
+        this.div_container.appendChild(this.delete_macro_button)
+
+        this.div_container.appendChild(this.create_macro_editor())
+    }
+
+    create_macro_editor() {
+        let macro_editor_container = document.createElement('div')
+        macro_editor_container.id = this.div_container.id + '_macro_editor_container'
+        macro_editor_container.style.display = 'flex'
+        macro_editor_container.style.flex = 1
+        macro_editor_container.style.flexDirection = 'column'
+
+        let macro_id_editor = document.createElement('input')
+        macro_id_editor.id = macro_editor_container.id + '_id_editor'
+        macro_id_editor.macro_field = 'macro_id'
+        macro_id_editor.style.display = 'flex'
+        macro_id_editor.addEventListener('change', this.update_macro_field)
+        macro_editor_container.appendChild(this.create_label_input_container("Macro ID", macro_id_editor))
+
+        let macro_name_editor = document.createElement('input')
+        macro_name_editor.id = macro_editor_container.id + '_name_editor'
+        macro_name_editor.macro_field = 'name'
+        macro_name_editor.style.display = 'flex'
+        macro_name_editor.addEventListener('change', this.update_macro_field)
+        macro_editor_container.appendChild(this.create_label_input_container('Macro Name', macro_name_editor))
+
+        let macro_display_name_editor = document.createElement('input')
+        macro_display_name_editor.id = macro_editor_container.id + '_display_name_editor'
+        macro_display_name_editor.macro_field = 'display_name'
+        macro_display_name_editor.style.display = 'flex'
+        macro_display_name_editor.addEventListener('change', this.update_macro_field)
+        macro_editor_container.appendChild(this.create_label_input_container('Macro Display Name', macro_display_name_editor))
+
+        let macro_text_editor = document.createElement('input')
+        macro_text_editor.id = macro_editor_container.id + '_macro_text_editor'
+        macro_text_editor.macro_field = 'macro_text'
+        macro_text_editor.style.display = 'flex'
+        macro_text_editor.addEventListener('change', this.update_macro_field)
+        macro_editor_container.appendChild(this.create_label_input_container('Macro Text Editor', macro_text_editor))
+
+        return macro_editor_container
+    }
+
+    create_label_input_container(label_name, input) {
+        let label_input_container = document.createElement('div')
+        label_input_container.style.display = 'flex'
+        label_input_container.style.flex = '1'
+        label_input_container.style.flexDirection = 'row'
+        let label = document.createElement('label')
+        label.setAttribute('for', input.id)
+        label.innerText = label_name
+        label.style.display = 'flex'
+        label.style.flex = '1'
+        label_input_container.appendChild(label)
+        label_input_container.appendChild(input)
+        return label_input_container
+    }
+
+    update_macro_field() {
+        let parentNode = this.parentNode.parentNode.parentNode;
+        let current_value = parentNode.setting.get('value')
+        let macro_to_change = TextMacro.fromJSON(JSON.parse(current_value[parentNode.select.selectedOptions[0].value_index]))
+        macro_to_change.set(this.macro_field, this.value)
+        current_value[parentNode.select.selectedOptions[0].value_index] = JSON.stringify(macro_to_change)
+        parentNode.setting.set('value', current_value)
+    }
+
+    set_editor_fields(macro, container_id) {
+        let macro_editor_container = document.getElementById(container_id)
+        for (let child of macro_editor_container.childNodes) {
+            child.childNodes[1].value = macro.get(child.childNodes[1].macro_field)
+        }
+    }
+
+    clear_editor_fields(container_id){
+        console.log(container_id)
+        let macro_editor_container = document.getElementById(container_id)
+        for (let child of macro_editor_container.childNodes) {
+            child.childNodes[1].value = ''
+        }
+    }
+
+    delete_macro() {
+        let current_value = this.parentNode.setting.get('value')
+        let select = this.parentNode.select;
+        let current_value_index = select.selectedOptions[0].value_index
+        console.log(current_value)
+        console.log(current_value_index)
+        if (current_value_index !== -2 && current_value_index !== -1) { // Don't delete the placeholder node. This is handled by create new macro automatically.
+            current_value.splice(current_value_index, 1)
+            if (current_value.length === 0) { // Create placeholder node so create new macro can fire 'on change'
+                let new_macro_option = document.createElement('option')
+                new_macro_option.textContent = ''
+                new_macro_option.value_index = -2
+                select.firstChild.before(new_macro_option)
+                this.parentNode.clear_editor_fields(this.parentNode.id + '_macro_editor_container')
+            } else {
+                this.parentNode.set_editor_fields(TextMacro.fromJSON(JSON.parse(current_value[0])), this.parentNode.id + '_macro_editor_container')
+            }
+            select.selectedOptions[0].remove()
+            select.firstChild.selected = true
+            let new_numbering = 0
+            for (let child of select.children) {
+                if (child.value_index !== -1 && child.value_index !== -2) {
+                    child.value_index = new_numbering
+                    new_numbering += 1
+                }
+            }
+            this.parentNode.setting.set('value', current_value)
+        }
+    }
+
+    toggle_setting() {
+        let current_value = this.parentNode.setting.get('value')
+        let value_index = this.selectedOptions[0].value_index
+        let text_macro
+        if (value_index === -1) {
+            if (current_value.length === 0) {
+                this.removeChild(this.firstChild)
+            }
+            text_macro = new TextMacro(current_value.length + 1, 'New Macro #' + (current_value.length + 1), 'Insert your macro text here.')
+            current_value.push(JSON.stringify(text_macro))
+            this.parentNode.setting.set('value', current_value)
+            let possible_option_value = document.createElement('option')
+            possible_option_value.textContent = text_macro.get('display_name')
+            possible_option_value.value_index = current_value.length - 1
+            this.lastChild.before(possible_option_value)
+            this.selectedOptions[0].selected = false
+            possible_option_value.selected = true
+        } else {
+            console.log(current_value[value_index])
+            text_macro = TextMacro.fromJSON(JSON.parse(current_value[value_index]))
+        }
+        this.parentNode.set_editor_fields(text_macro, this.parentNode.id + '_macro_editor_container')
+    }
+
+
+}
+
 (async () => {
         'use strict';
 
@@ -876,8 +1092,8 @@ function sinebow(freq1, freq2, freq3, phase1, phase2, phase3, amp1, amp2, amp3, 
         let objects_to_load = ['macros', 'greetings', 'settings']
         let settings = await load_settings()
         let SCROLLBACK_BUFFER = parseInt(settings.get('groups').get('general').get('loaded_settings').get('scrollback_buffer').get('value'))
-        let macros = load_text_macros()
-        let auto_greetings = load_auto_greetings()
+        //let macros = load_text_macros()
+        //let auto_greetings = load_auto_greetings()
         let observed_chat_outputs = []
         let observed_j_buttons = []
         let users = new Map()
@@ -897,10 +1113,9 @@ function sinebow(freq1, freq2, freq3, phase1, phase2, phase3, amp1, amp2, amp3, 
                 create_container_divs()
                 create_animation_buttons()
                 create_function_buttons()
-                create_macro_admin_buttons()
-                create_auto_greeting_admin_buttons()
+                //create_macro_admin_buttons()
+                //create_auto_greeting_admin_buttons()
                 watch_for_textarea_submit()
-
             }
         }
 
@@ -977,6 +1192,8 @@ function sinebow(freq1, freq2, freq3, phase1, phase2, phase3, amp1, amp2, amp3, 
             general_settings_group.add_setting(scrollback_buffer_setting)
             let appearance_settings_group = create_default_appearance_group_settings()
             let macro_settings_group = new SettingsGroup('macros', 'Macros', undefined)
+            let macro_editor_setting = new Setting('macro_editor_setting', 'Macro Editor', 'text_editor_macro', macro_settings_group.get('name'), [], [])
+            macro_settings_group.add_setting(macro_editor_setting)
             let auto_greet_settings_group = new SettingsGroup('auto_greet', 'Auto-Begrüßung', undefined)
             settings_collection.add_group(general_settings_group)
             settings_collection.add_group(appearance_settings_group)
