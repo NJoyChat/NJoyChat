@@ -674,6 +674,7 @@ class SettingItemDetailsGradientEditor {
         slider.max = max
         slider.step = step
         slider.value_index = value_index
+        slider.digits = step.substring(2).length
         slider.value = this.div_container.setting.get('value')[value_index]
         slider.style.margin = '2px'
         slider.style.flex = '1'
@@ -684,6 +685,7 @@ class SettingItemDetailsGradientEditor {
         number_input.max = max
         number_input.step = step
         number_input.value_index = value_index
+        number_input.digits = step.substring(2).length
         number_input.value = this.div_container.setting.get('value')[value_index]
         number_input.style.margin = '2px'
         number_input.style.flex = '1'
@@ -703,7 +705,7 @@ class SettingItemDetailsGradientEditor {
             parent_node = parent_node.parentNode
         }
         let currentValue = parent_node.setting.get('value')
-        currentValue[this.value_index] = parseFloat(this.value)
+        currentValue[this.value_index] = parseFloat(this.value).toFixed(this.digits)
         if (this.slider.value !== this.value) {
             this.slider.value = this.value
         }
@@ -716,7 +718,7 @@ class SettingItemDetailsGradientEditor {
             parent_node = parent_node.parentNode
         }
         let currentValue = parent_node.setting.get('value')
-        currentValue[this.value_index] = parseFloat(this.value)
+        currentValue[this.value_index] = parseFloat(this.value).toFixed(this.digits)
         if (this.number_input.value !== this.value) {
             this.number_input.value = this.value
         }
@@ -1743,7 +1745,7 @@ function sinebow(freq1, freq2, freq3, phase1, phase2, phase3, amp1, amp2, amp3, 
     }
 
     function text_control_code_handler(message, options) {
-        let gradient_settings = parse_gradient_options(options.slice(2))
+        let gradient_settings = parse_gradient_options(options)
         console.log('Text control handler:', message, options)
         if (message.nodeType !== Node.TEXT_NODE) {
             console.log('Text control handler invoked on non text node. Returning.')
@@ -1795,7 +1797,7 @@ function sinebow(freq1, freq2, freq3, phase1, phase2, phase3, amp1, amp2, amp3, 
     }
 
     function chat_message_header_rainbow_user_name_control_code_handler(message, options) {
-        let gradient_settings = parse_gradient_options(options.slice(2))
+        let gradient_settings = parse_gradient_options(options)
         console.log(options)
         if (message.classList === undefined || !message.classList.contains('user')) {
             return message
@@ -1860,7 +1862,9 @@ function sinebow(freq1, freq2, freq3, phase1, phase2, phase3, amp1, amp2, amp3, 
         let all_numbers = []
         let current_number = ''
         for (let number of options) {
-            if (number === 999) {
+            if (number === 998){
+                current_number += '-'
+            } else if (number === 999) {
                 current_number += '.'
             } else if (number === 1000) {
                 all_numbers.push(parseFloat(current_number))
@@ -1875,12 +1879,29 @@ function sinebow(freq1, freq2, freq3, phase1, phase2, phase3, amp1, amp2, amp3, 
     function encode_gradient_options(options) {
         let encoded_options = []
         for (let number of options) {
-            let integer_portion = parseInt(number.toString().substring(0, number.toString().indexOf('.')))
-            let decimal_portion = parseInt(number.toString().substring(number.toString().indexOf('.') + 1))
-            encoded_options.push(integer_portion)
-            encoded_options.push(999)
-            encoded_options.push(decimal_portion)
-            encoded_options.push(1000)
+            if (number.toString().indexOf('.') === -1){
+                if (number.toString().startsWith('-')){
+                    encoded_options.push(998)
+                    encoded_options.push(Math.abs(number))
+                } else {
+                    encoded_options.push(number)
+                }
+                encoded_options.push(999)
+                encoded_options.push(0)
+                encoded_options.push(1000)
+            } else {
+                let integer_string = number.toString().substring(0, number.toString().indexOf('.'))
+                if (integer_string.startsWith('-')) {
+                    integer_string = integer_string.substring(1)
+                    encoded_options.push(998)
+                }
+                let integer_portion = parseInt(integer_string)
+                let decimal_portion = parseInt(number.toString().substring(number.toString().indexOf('.') + 1))
+                encoded_options.push(integer_portion)
+                encoded_options.push(999)
+                encoded_options.push(decimal_portion)
+                encoded_options.push(1000)
+            }
         }
         return encoded_options
     }
@@ -2051,6 +2072,7 @@ function sinebow(freq1, freq2, freq3, phase1, phase2, phase3, amp1, amp2, amp3, 
         let dc3 = gradient_settings[11]
         let repetition = gradient_settings[12]
         let gradient_speed = gradient_settings[13]
+        console.log('Gradient Settings decoded:', gradient_settings)
         let t1 = gsap.timeline({repeat: -1, yoyo: true})
             .to(words, {
                 red: 255,
