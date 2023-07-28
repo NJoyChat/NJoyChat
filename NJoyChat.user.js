@@ -599,10 +599,10 @@ class SettingItemDetailsGradientEditor {
         let value = setting.get('value')
         let names = ['Frequenz Rot', 'Frequenz Grün', 'Frequenz Blau', 'Phase Rot', 'Phase Grün', 'Phase Blau', 'Amplitude Rot', 'Amplitude Grün', 'Amplitude Blau', 'DC Rot', 'DC Grün', 'DC Blau']
         for (let i = 0; i < value.length - 2; i++) {
-            this.create_value_slider(this.div_container.rows[Math.floor(i / 3)], i, '-3.13840734641021', '3.13840734641021', '0.00000000000001', names[i])
+            this.create_value_slider(this.div_container.rows[Math.floor(i / 3)], i, '-3.13', '3.13', '0.01', names[i])
         }
-        this.div_container.appendChild(this.create_parentless_value_slider(value.length - 2, '0', '2', '0.00000001', 'Gradient Repetition'))
-        this.div_container.appendChild(this.create_parentless_value_slider(value.length - 1, '1', '30', '0.5', 'Gradient Speed (Seconds)'))
+        this.div_container.appendChild(this.create_parentless_value_slider(value.length - 2, '0', '2', '0.0001', 'Gradient Repetition'))
+        this.div_container.appendChild(this.create_parentless_value_slider(value.length - 1, '1', '30', '0.01', 'Gradient Speed (Seconds)'))
         let demo_div = this.make_text_sinebow('Das hier ist ein Demo Text der lang genug sein muss, um den Farbverlauf wirklich gut darzustellen.', this.div_container.setting.get('value'))
         demo_div.id = 'demo_div_gradient'
         this.div_container.appendChild(demo_div)
@@ -1213,13 +1213,13 @@ function sinebow(freq1, freq2, freq3, phase1, phase2, phase3, amp1, amp2, amp3, 
         show_macro_admin_button.setAttribute('class', " nj-button__content nsecondary nj-button")
         show_macro_admin_button.addEventListener("click", toggle_macro_admin_container_visibility)
         show_macro_admin_button.id = 'toggle_macro_admin_button'
-        document.getElementById('njoy_settings_window').appendChild(show_macro_admin_button)
+        document.getElementById('njoy_function_buttons_container').appendChild(show_macro_admin_button)
         let show_auto_greet_admin_button = document.createElement('button')
         show_auto_greet_admin_button.innerText = 'Toggle Auto-greet Admin.'
         show_auto_greet_admin_button.setAttribute('class', " nj-button__content nsecondary nj-button")
         show_auto_greet_admin_button.addEventListener("click", toggle_auto_greet_admin_container_visibility)
         show_auto_greet_admin_button.id = 'toggle_auto_greet_admin_button'
-        document.getElementById('njoy_settings_window').appendChild(show_auto_greet_admin_button)
+        document.getElementById('njoy_function_buttons_container').appendChild(show_auto_greet_admin_button)
     }
 
     function create_macro_admin_buttons() {
@@ -1743,23 +1743,23 @@ function sinebow(freq1, freq2, freq3, phase1, phase2, phase3, amp1, amp2, amp3, 
     }
 
     function text_control_code_handler(message, options) {
+        let gradient_settings = parse_gradient_options(options.slice(2))
         console.log('Text control handler:', message, options)
         if (message.nodeType !== Node.TEXT_NODE) {
             console.log('Text control handler invoked on non text node. Returning.')
             return message
         }
-        if (options.includes(69)) {
-            console.log('69 was in options')
-            if (settings.get('groups').get('appearance').get('loaded_settings').get('disable_rainbow_message_globally').get('value')) {
 
-            } else if (settings.get('groups').get('appearance').get('loaded_settings').get('disable_rainbow_message_externally').get('value')) {
-                if (extract_user_from_message(message) === username_self) {
-                    message = make_text_sinebow(message.nodeValue)
-                }
-            } else {
-                message = make_text_sinebow(message.nodeValue)
+        if (settings.get('groups').get('appearance').get('loaded_settings').get('disable_rainbow_message_globally').get('value')) {
+
+        } else if (settings.get('groups').get('appearance').get('loaded_settings').get('disable_rainbow_message_externally').get('value')) {
+            if (extract_user_from_message(message) === username_self) {
+                message = make_text_sinebow(message.nodeValue, gradient_settings)
             }
+        } else {
+            message = make_text_sinebow(message.nodeValue, gradient_settings)
         }
+
         return message
     }
 
@@ -1795,12 +1795,13 @@ function sinebow(freq1, freq2, freq3, phase1, phase2, phase3, amp1, amp2, amp3, 
     }
 
     function chat_message_header_rainbow_user_name_control_code_handler(message, options) {
+        let gradient_settings = parse_gradient_options(options.slice(2))
         console.log(options)
         if (message.classList === undefined || !message.classList.contains('user')) {
             return message
         }
         if (settings.get('groups').get('appearance').get('loaded_settings').get('username_rainbow').get('value')) {
-            let rainbow_user_name = make_text_sinebow(message.querySelector('strong').textContent)
+            let rainbow_user_name = make_text_sinebow(message.querySelector('strong').textContent, gradient_settings)
             message.querySelector('strong').firstChild.replaceWith(rainbow_user_name)
         }
         return message
@@ -1853,6 +1854,35 @@ function sinebow(freq1, freq2, freq3, phase1, phase2, phase3, amp1, amp2, amp3, 
 
     function handle_chat_message_removal(removedNodes) {
         console.log('lol lmao', removedNodes)
+    }
+
+    function parse_gradient_options(options) {
+        let all_numbers = []
+        let current_number = ''
+        for (let number of options) {
+            if (number === 999) {
+                current_number += '.'
+            } else if (number === 1000) {
+                all_numbers.push(parseFloat(current_number))
+                current_number = ''
+            } else {
+                current_number += number
+            }
+        }
+        return all_numbers
+    }
+
+    function encode_gradient_options(options) {
+        let encoded_options = []
+        for (let number of options) {
+            let integer_portion = parseInt(number.toString().substring(0, number.toString().indexOf('.')))
+            let decimal_portion = parseInt(number.toString().substring(number.toString().indexOf('.') + 1))
+            encoded_options.push(integer_portion)
+            encoded_options.push(999)
+            encoded_options.push(decimal_portion)
+            encoded_options.push(1000)
+        }
+        return encoded_options
     }
 
     let zero_control_space = 8203
@@ -1966,8 +1996,11 @@ function sinebow(freq1, freq2, freq3, phase1, phase2, phase3, amp1, amp2, amp3, 
         }
         if (settings.get('groups').get('appearance').get('loaded_settings').get('rainbow_message').get('value')) {
             config_values.push(3)
-            config_values.push(1)
-            config_values.push(69)
+            let encoded_gradient_options = encode_gradient_options(settings.get('groups').get('appearance').get('loaded_settings').get('gradient_editor_setting').get('value'))
+            config_values.push(encoded_gradient_options.length)
+            for (let encoded_option of encoded_gradient_options) {
+                config_values.push(encoded_option)
+            }
         }
         if (settings.get('groups').get('appearance').get('loaded_settings').get('username_picture').get('value')) {
             config_values.push(4)
@@ -1976,8 +2009,11 @@ function sinebow(freq1, freq2, freq3, phase1, phase2, phase3, amp1, amp2, amp3, 
         }
         if (settings.get('groups').get('appearance').get('loaded_settings').get('username_rainbow').get('value')) {
             config_values.push(5)
-            config_values.push(1)
-            config_values.push(1)
+            let encoded_gradient_options = encode_gradient_options(settings.get('groups').get('appearance').get('loaded_settings').get('gradient_editor_setting').get('value'))
+            config_values.push(encoded_gradient_options.length)
+            for (let encoded_option of encoded_gradient_options) {
+                config_values.push(encoded_option)
+            }
         }
         let control_spaces = convert_number_array_to_control_spaces(config_values)
         let final_control_space_string = String.fromCharCode(control_space_start_character)
@@ -1993,7 +2029,7 @@ function sinebow(freq1, freq2, freq3, phase1, phase2, phase3, amp1, amp2, amp3, 
 
 // Utility Functions
 
-    function make_text_sinebow(text_to_rainbowify) {
+    function make_text_sinebow(text_to_rainbowify, gradient_settings) {
         let container_div = document.createElement('span')
         container_div.setAttribute('class', 'rainbow')
         container_div.style.red = 0
@@ -2001,7 +2037,6 @@ function sinebow(freq1, freq2, freq3, phase1, phase2, phase3, amp1, amp2, amp3, 
         let words = split.reduce(wrapText, container_div);
         let chars = words.children;
         let total = words.children.length;
-        let gradient_settings = settings.get('groups').get('appearance').get('loaded_settings').get('gradient_editor_setting').get('value')
         let freq1 = gradient_settings[0]
         let freq2 = gradient_settings[1]
         let freq3 = gradient_settings[2]
