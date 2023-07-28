@@ -25,7 +25,8 @@
 
 // Old Settings classes
 
-let precomputed_sinebow = undefined
+let active_sinebow = undefined
+let precomputed_sinebows = new Map()
 
 class TextMacro {
     constructor(macro_id, name, macro_text) {
@@ -46,7 +47,7 @@ class TextAutoGreeting {
 
 // New Settings Classes
 
-function create_settings_container_div(setting){
+function create_settings_container_div(setting) {
     let div_container = document.createElement('div');
     div_container.setting = setting
     div_container.classList.add('nj-no-overflow-container')
@@ -571,7 +572,7 @@ class SettingItemDetailsGradientEditor {
         }
         this.div_container.appendChild(this.div_container.row_container)
 
-        for (let row of this.div_container.rows){
+        for (let row of this.div_container.rows) {
             let name_container = document.createElement('div')
             name_container.id = row.id + "_name_container"
             name_container.style.flexDirection = 'column'
@@ -614,10 +615,9 @@ class SettingItemDetailsGradientEditor {
     }
 
     update_demo_div() {
-        precomputed_sinebow = undefined
         let new_demo_div = this.parentNode.preview_function('Das hier ist ein Demo Text der lang genug sein muss, um den Farbverlauf wirklich gut darzustellen.', this.parentNode.setting.get('value'))
-        new_demo_div.id = 'demo_div_gradient'
         this.parentNode.replaceChild(new_demo_div, document.getElementById('demo_div_gradient'))
+        new_demo_div.id = 'demo_div_gradient'
     }
 
     create_value_slider(parent, value_index, min, max, step, name) {
@@ -658,7 +658,7 @@ class SettingItemDetailsGradientEditor {
         parent.childNodes[2].appendChild(number_input)
     }
 
-    create_parentless_value_slider(value_index, min, max, step, name){
+    create_parentless_value_slider(value_index, min, max, step, name) {
         let value_slider_container = document.createElement('div')
         value_slider_container.style.flex = '1'
         value_slider_container.style.display = 'flex'
@@ -698,7 +698,7 @@ class SettingItemDetailsGradientEditor {
 
     update_slider_and_value() {
         let parent_node = this.parentNode
-        while (!(parent_node.setting instanceof Map)){
+        while (!(parent_node.setting instanceof Map)) {
             parent_node = parent_node.parentNode
         }
         let currentValue = parent_node.setting.get('value')
@@ -711,7 +711,7 @@ class SettingItemDetailsGradientEditor {
 
     update_number_input_and_value() {
         let parent_node = this.parentNode
-        while (!(parent_node.setting instanceof Map)){
+        while (!(parent_node.setting instanceof Map)) {
             parent_node = parent_node.parentNode
         }
         let currentValue = parent_node.setting.get('value')
@@ -751,21 +751,24 @@ class SettingItemDetailsGradientEditor {
                 duration: gradient_speed,
                 modifiers: {
                     red: function (x) {
+                        let active_sinebow
+                        if (precomputed_sinebows.has(gradient_settings)){
+                            active_sinebow = precomputed_sinebows.get(gradient_settings)
+                        } else {
+                            active_sinebow = new Map()
+                            precomputed_sinebows.set(gradient_settings, active_sinebow)
+                            console.log(precomputed_sinebows)
+                        }
                         for (let i = 0; i < total; i++) {
                             let index = i + 25 + x * repetition;
                             index = +index.toFixed(2)
-                            if (precomputed_sinebow === undefined){
-                                precomputed_sinebow = new Map()
-                                precomputed_sinebow.set(index, sinebow(freq1, freq2, freq3, phase1, phase2, phase3, amp1, amp2, amp3, dc1, dc2, dc3, index))
-                            }
-                            if (precomputed_sinebow.has(index)){
-                                chars[i].style.color = precomputed_sinebow.get(index);
+                            if (active_sinebow.has(index)) {
+                                chars[i].style.color = active_sinebow.get(index);
                             } else {
                                 let computed_sinebow = sinebow(freq1, freq2, freq3, phase1, phase2, phase3, amp1, amp2, amp3, dc1, dc2, dc3, index)
-                                precomputed_sinebow.set(index, computed_sinebow)
+                                active_sinebow.set(index, computed_sinebow)
                                 chars[i].style.color = computed_sinebow
                             }
-
                         }
                         return x;
                     }
@@ -1746,7 +1749,7 @@ function sinebow(freq1, freq2, freq3, phase1, phase2, phase3, amp1, amp2, amp3, 
             if (settings.get('groups').get('appearance').get('loaded_settings').get('disable_rainbow_message_globally').get('value')) {
 
             } else if (settings.get('groups').get('appearance').get('loaded_settings').get('disable_rainbow_message_externally').get('value')) {
-                if (extract_user_from_message(message) === username_self){
+                if (extract_user_from_message(message) === username_self) {
                     message = make_text_sinebow(message.nodeValue)
                 }
             } else {
@@ -1756,7 +1759,7 @@ function sinebow(freq1, freq2, freq3, phase1, phase2, phase3, amp1, amp2, amp3, 
         return message
     }
 
-    function extract_user_from_message(message){
+    function extract_user_from_message(message) {
         return message.parentNode.querySelector('.user > strong').textContent
     }
 
@@ -1999,18 +2002,22 @@ function sinebow(freq1, freq2, freq3, phase1, phase2, phase3, amp1, amp2, amp3, 
                 duration: gradient_speed,
                 modifiers: {
                     red: function (x) {
+                        let active_sinebow
+                        if (precomputed_sinebows.has(gradient_settings)){
+                            active_sinebow = precomputed_sinebows.get(gradient_settings)
+                        } else {
+                            active_sinebow = new Map()
+                            precomputed_sinebows.set(gradient_settings, active_sinebow)
+                            console.log(precomputed_sinebows)
+                        }
                         for (let i = 0; i < total; i++) {
                             let index = i + 25 + x * repetition;
                             index = +index.toFixed(2)
-                            if (precomputed_sinebow === undefined){
-                                precomputed_sinebow = new Map()
-                                precomputed_sinebow.set(index, sinebow(freq1, freq2, freq3, phase1, phase2, phase3, amp1, amp2, amp3, dc1, dc2, dc3, index))
-                            }
-                            if (precomputed_sinebow.has(index)){
-                                chars[i].style.color = precomputed_sinebow.get(index);
+                            if (active_sinebow.has(index)) {
+                                chars[i].style.color = active_sinebow.get(index);
                             } else {
                                 let computed_sinebow = sinebow(freq1, freq2, freq3, phase1, phase2, phase3, amp1, amp2, amp3, dc1, dc2, dc3, index)
-                                precomputed_sinebow.set(index, computed_sinebow)
+                                active_sinebow.set(index, computed_sinebow)
                                 chars[i].style.color = computed_sinebow
                             }
                         }
