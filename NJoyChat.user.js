@@ -616,7 +616,8 @@ class SettingItemDetailsGradientEditor {
 
     update_demo_div() {
         let new_demo_div = this.parentNode.preview_function('Das hier ist ein Demo Text der lang genug sein muss, um den Farbverlauf wirklich gut darzustellen.', this.parentNode.setting.get('value'))
-        this.parentNode.replaceChild(new_demo_div, document.getElementById('demo_div_gradient'))
+        document.getElementById('demo_div_gradient').remove()
+        this.parentNode.appendChild(new_demo_div)
         new_demo_div.id = 'demo_div_gradient'
     }
 
@@ -752,7 +753,7 @@ class SettingItemDetailsGradientEditor {
                 modifiers: {
                     red: function (x) {
                         let active_sinebow
-                        if (precomputed_sinebows.has(gradient_settings)){
+                        if (precomputed_sinebows.has(gradient_settings)) {
                             active_sinebow = precomputed_sinebows.get(gradient_settings)
                         } else {
                             active_sinebow = new Map()
@@ -990,6 +991,8 @@ function sinebow(freq1, freq2, freq3, phase1, phase2, phase3, amp1, amp2, amp3, 
         appearance_settings_group.add_setting(gradient_editor)
         let username_header = new Setting('username_header', 'Username Einstellungen', 'section_header', appearance_settings_group.get('name'), 'Username Einstellungen', ['Username Einstellungen'])
         appearance_settings_group.add_setting(username_header)
+        let rainbow_user_name = new Setting('username_rainbow', 'Username Regenbogen An/Aus', 'boolean', appearance_settings_group.get('name'), true, [true, false])
+        appearance_settings_group.add_setting(rainbow_user_name)
         let username_picture_setting = new Setting('username_picture', 'Username Icon An/Aus', 'boolean', appearance_settings_group.get('name'), true, [true, false])
         appearance_settings_group.add_setting(username_picture_setting)
         let username_picture_replace_gender_setting = new Setting('username_picture_replace_gender', 'Username Icon Statt Geschlecht', 'boolean', appearance_settings_group.get('name'), true, [true, false])
@@ -1706,7 +1709,8 @@ function sinebow(freq1, freq2, freq3, phase1, phase2, phase3, amp1, amp2, amp3, 
                 control_code_map.set(1, first_control_code)
                 control_code_map.set(2, second_control_code_handling)
                 control_code_map.set(3, text_control_code_handler)
-                control_code_map.set(4, chat_message_header_control_code_handler)
+                control_code_map.set(4, chat_message_header_username_icon_control_code_handler)
+                control_code_map.set(5, chat_message_header_rainbow_user_name_control_code_handler)
                 for (let i = actual_chat_content.childNodes.length - 1; i >= 0; i--) {
                     let message = actual_chat_content.childNodes[i]
 
@@ -1763,7 +1767,7 @@ function sinebow(freq1, freq2, freq3, phase1, phase2, phase3, amp1, amp2, amp3, 
         return message.parentNode.querySelector('.user > strong').textContent
     }
 
-    function chat_message_header_control_code_handler(message, options) {
+    function chat_message_header_username_icon_control_code_handler(message, options) {
         if (message.classList === undefined || !message.classList.contains('user')) {
             return message
         }
@@ -1787,6 +1791,18 @@ function sinebow(freq1, freq2, freq3, phase1, phase2, phase3, amp1, amp2, amp3, 
             gender_icon.parentNode.insertBefore(emoji_span, gender_icon)
         }
 
+        return message
+    }
+
+    function chat_message_header_rainbow_user_name_control_code_handler(message, options) {
+        console.log(options)
+        if (message.classList === undefined || !message.classList.contains('user')) {
+            return message
+        }
+        if (settings.get('groups').get('appearance').get('loaded_settings').get('username_rainbow').get('value')) {
+            let rainbow_user_name = make_text_sinebow(message.querySelector('strong').textContent)
+            message.querySelector('strong').firstChild.replaceWith(rainbow_user_name)
+        }
         return message
     }
 
@@ -1958,6 +1974,11 @@ function sinebow(freq1, freq2, freq3, phase1, phase2, phase3, amp1, amp2, amp3, 
             config_values.push(1)
             config_values.push(emoji_list.indexOf(settings.get('groups').get('appearance').get('loaded_settings').get('username_picture_choice').get('value')))
         }
+        if (settings.get('groups').get('appearance').get('loaded_settings').get('username_rainbow').get('value')) {
+            config_values.push(5)
+            config_values.push(1)
+            config_values.push(1)
+        }
         let control_spaces = convert_number_array_to_control_spaces(config_values)
         let final_control_space_string = String.fromCharCode(control_space_start_character)
         for (let control_space of control_spaces) {
@@ -2003,7 +2024,7 @@ function sinebow(freq1, freq2, freq3, phase1, phase2, phase3, amp1, amp2, amp3, 
                 modifiers: {
                     red: function (x) {
                         let active_sinebow
-                        if (precomputed_sinebows.has(gradient_settings)){
+                        if (precomputed_sinebows.has(gradient_settings)) {
                             active_sinebow = precomputed_sinebows.get(gradient_settings)
                         } else {
                             active_sinebow = new Map()
