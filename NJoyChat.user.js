@@ -1118,10 +1118,14 @@ class SettingItemDetailsTextEditor {
 
         function create_close_and_save_settings_button() {
             let hide_settings_button = document.createElement('button')
-            hide_settings_button.innerText = 'Einstellungen'
+            hide_settings_button.innerText = 'X'
             hide_settings_button.setAttribute('class', " nj-button__content nsecondary nj-button")
             hide_settings_button.addEventListener("click", toggle_settings_window)
             hide_settings_button.id = 'hide_settings_window_button'
+            hide_settings_button.style.position = 'relative'
+            hide_settings_button.style.float = 'right'
+            hide_settings_button.style.margin = '5px'
+            hide_settings_button.style.zIndex = '9998'
             document.getElementById('njoy_settings_window').appendChild(hide_settings_button)
         }
 
