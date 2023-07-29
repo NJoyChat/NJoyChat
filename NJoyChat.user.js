@@ -1193,6 +1193,8 @@ class SettingItemDetailsTextEditor {
             general_settings_group.add_setting(scrollback_buffer_setting)
             let appearance_settings_group = create_default_appearance_group_settings()
             let macro_settings_group = new SettingsGroup('macros', 'Macros', undefined)
+            let macro_editor_header = new Setting('macro_editor_header', 'Macro Editor', 'section_header', macro_settings_group.get('name'), 'Macro Editor', ['Macro Editor'])
+            macro_settings_group.add_setting(macro_editor_header)
             let macro_editor_setting = new Setting('macro_editor_setting', 'Macro Editor', 'text_editor_macro', macro_settings_group.get('name'), [], [])
             macro_settings_group.add_setting(macro_editor_setting)
             let auto_greet_settings_group = new SettingsGroup('auto_greet', 'Auto-Begrüßung', undefined)
