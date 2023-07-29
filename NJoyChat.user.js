@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         NJoyChat
 // @namespace    https://www.joyclub.de/chat/login/
-// @version      Alpha-v20
+// @version      Alpha-v21
 // @description  Improves JoyChat with additional utilities.
 // @author       NJoyChat Team
 // @match        https://www.joyclub.de/chat/login/
@@ -976,8 +976,6 @@ class SettingItemDetailsTextEditor {
         let current_value = this.parentNode.setting.get('value')
         let select = this.parentNode.select;
         let current_value_index = select.selectedOptions[0].value_index
-        console.log(current_value)
-        console.log(current_value_index)
         if (current_value_index !== -2 && current_value_index !== -1) { // Don't delete the placeholder node. This is handled by create new macro automatically.
             current_value.splice(current_value_index, 1)
             if (current_value.length === 0) { // Create placeholder node so create new macro can fire 'on change'
@@ -1020,7 +1018,6 @@ class SettingItemDetailsTextEditor {
             this.selectedOptions[0].selected = false
             possible_option_value.selected = true
         } else {
-            console.log(current_value[value_index])
             text_macro = TextMacro.fromJSON(JSON.parse(current_value[value_index]))
         }
         this.parentNode.set_editor_fields(text_macro, this.parentNode.id + '_macro_editor_container')
@@ -1113,7 +1110,7 @@ class SettingItemDetailsTextEditor {
                 create_container_divs()
                 create_animation_buttons()
                 create_function_buttons()
-                //create_macro_admin_buttons()
+                create_macro_buttons()
                 //create_auto_greeting_admin_buttons()
                 watch_for_textarea_submit()
             }
@@ -1282,6 +1279,8 @@ class SettingItemDetailsTextEditor {
                 create_settings_window()
                 settings_menu = new SettingsMenu(settings)
                 create_close_and_save_settings_button()
+                clear_macro_buttons()
+                create_macro_buttons()
             }
         }
 
@@ -1344,9 +1343,6 @@ class SettingItemDetailsTextEditor {
             animation_buttons_container.id = "njoy_animation_buttons_container"
             animation_buttons_container.style.width = '100%'
             animation_buttons_container.style.height = '50px'
-            let macro_admin_buttons_container = document.createElement('div')
-            macro_admin_buttons_container.id = "njoy_macro_admin_buttons_container"
-            macro_admin_buttons_container.hidden = true
             let macro_buttons_container = document.createElement('div')
             macro_buttons_container.id = "njoy_macro_buttons_container"
             let auto_greet_admin_buttons_container = document.createElement('div')
@@ -1361,7 +1357,6 @@ class SettingItemDetailsTextEditor {
             document.querySelector('#joychat_statusbar').style.height = '50px'
             document.querySelector('.statusbar_general').replaceWith(animation_buttons_container)
             parent_container.appendChild(function_buttons_container)
-            parent_container.appendChild(macro_admin_buttons_container)
             parent_container.appendChild(macro_buttons_container)
             parent_container.appendChild(auto_greet_admin_buttons_container)
             parent_container.appendChild(auto_greet_buttons_container)
@@ -1372,9 +1367,9 @@ class SettingItemDetailsTextEditor {
         }
 
         function create_macro_buttons() {
-            for (const macro of macros.keys()) {
+            for (const macro of settings.get('groups').get('macros').get('loaded_settings').get('macro_editor_setting').get('value')) {
                 if (document.getElementById("njoy_macro_buttons_container") !== undefined && document.getElementById("njoy_macro_buttons_container") !== null) {
-                    document.getElementById("njoy_macro_buttons_container").appendChild(add_button(macros.get(macro), false))
+                    document.getElementById("njoy_macro_buttons_container").appendChild(add_button(TextMacro.fromJSON(JSON.parse(macro)), false))
                 }
             }
         }
@@ -1447,33 +1442,12 @@ class SettingItemDetailsTextEditor {
             document.querySelector('div.bell_switch').parentNode.insertBefore(document.querySelector('div.bell_switch'), show_settings_container)
             //document.getElementById('njoy_function_buttons_container').appendChild(show_settings_button)
             create_close_and_save_settings_button()
-            let show_macro_admin_button = document.createElement('button')
-            show_macro_admin_button.innerText = 'Toggle Macro Admin.'
-            show_macro_admin_button.setAttribute('class', " nj-button__content nsecondary nj-button")
-            show_macro_admin_button.addEventListener("click", toggle_macro_admin_container_visibility)
-            show_macro_admin_button.id = 'toggle_macro_admin_button'
-            document.getElementById('njoy_function_buttons_container').appendChild(show_macro_admin_button)
             let show_auto_greet_admin_button = document.createElement('button')
             show_auto_greet_admin_button.innerText = 'Toggle Auto-greet Admin.'
             show_auto_greet_admin_button.setAttribute('class', " nj-button__content nsecondary nj-button")
             show_auto_greet_admin_button.addEventListener("click", toggle_auto_greet_admin_container_visibility)
             show_auto_greet_admin_button.id = 'toggle_auto_greet_admin_button'
             document.getElementById('njoy_function_buttons_container').appendChild(show_auto_greet_admin_button)
-        }
-
-        function create_macro_admin_buttons() {
-            let macro_save_button = new TextMacro(-1, "Save", undefined)
-            let macro_load_button = new TextMacro(-2, "Load", undefined)
-            let macro_delete_button = new TextMacro(-3, "Delete", undefined)
-            let macro_name_input = document.createElement('input')
-            macro_name_input.id = "macro_name_input"
-            document.getElementById('njoy_macro_admin_buttons_container').appendChild(add_button(macro_save_button, true))
-            document.getElementById('macro_button_-1').addEventListener('click', save_macro)
-            document.getElementById('njoy_macro_admin_buttons_container').appendChild(add_button(macro_load_button, true))
-            document.getElementById('macro_button_-2').addEventListener('click', load_macro)
-            document.getElementById('njoy_macro_admin_buttons_container').appendChild(add_button(macro_delete_button, true))
-            document.getElementById('macro_button_-3').addEventListener('click', delete_macro)
-            document.getElementById('njoy_macro_admin_buttons_container').appendChild(macro_name_input)
         }
 
         function toggle_macro_admin_container_visibility() {
@@ -1491,40 +1465,6 @@ class SettingItemDetailsTextEditor {
                 auto_greet_admin_buttons_container.hidden = true
                 auto_greet_buttons_container.hidden = true
             }
-        }
-
-        function load_text_macros() {
-            const macros = new Map();
-            let counter = 0
-            GM.getValue("macros").then((macro_list) => {
-                    if (macro_list !== undefined) {
-                        macro_list = new Map(JSON.parse(macro_list))
-                        if (typeof macro_list[Symbol.iterator] === 'function' && macro_list.keys() !== undefined) {
-                            for (const macro_id of macro_list.keys()) {
-                                GM.getValue(macro_id).then((value) => {
-                                        if (value !== undefined) {
-                                            macros.set(macro_id, JSON.parse(value))
-                                        }
-                                        counter++
-                                        if (counter === macro_list.size) {
-                                            console.log("Initiating stage 2.")
-                                            objects_to_load = objects_to_load.filter(item => item !== 'macros')
-                                            if (objects_to_load.length === 0) {
-                                                start_running()
-                                            }
-                                            create_macro_buttons()
-                                        }
-                                    }
-                                )
-                            }
-                        }
-                    } else {
-                        macro_list = new Map()
-                        GM.setValue("macros", JSON.stringify([...macro_list]))
-                    }
-                }
-            )
-            return macros
         }
 
         function load_auto_greetings() {
@@ -1607,56 +1547,9 @@ class SettingItemDetailsTextEditor {
             create_auto_greeting_buttons()
         }
 
-        function save_macro() {
-            console.log("Save macro clicked")
-            let macro_name_input = document.getElementById('macro_name_input').value
-            let macro_text_input = document.querySelectorAll('#joychat_input_text')[0].value
-            GM.getValue(1).then((macro_id) => {
-                    if (macro_id === undefined) {
-                        macro_id = 2
-                    }
-                    let new_macro = new TextMacro(macro_id, macro_name_input, macro_text_input)
-                    console.log(new_macro)
-                    GM.setValue(macro_id, JSON.stringify(new_macro))
-                    macros.set(macro_id, new_macro)
-                    console.log(macros)
-                    GM.setValue(1, macro_id + 1)
-                    GM.setValue("macros", JSON.stringify([...macros]))
-                    clear_macro_buttons()
-                    create_macro_buttons()
-                }
-            )
-        }
-
-        function load_macro() {
-            console.log("Load macro clicked")
-            let macro_name_input = document.getElementById('macro_name_input').value
-            let macro_id = get_key_for_macro_name(macro_name_input)
-            if (macro_id !== -999) {
-                document.querySelectorAll('#joychat_input_text')[0].value = macros.get(macro_id).macro_text
-            } else {
-                console.log('Macro name not found.')
-            }
-        }
-
-        function delete_macro() {
-            console.log("Delete macro clicked")
-            let macro_name_input = document.getElementById('macro_name_input').value
-            let macro_id = get_key_for_macro_name(macro_name_input)
-            if (macro_id !== -999) {
-                macros.delete(macro_id)
-                GM.setValue(macro_id, undefined)
-                GM.setValue("macros", JSON.stringify([...macros]))
-            } else {
-                console.log('Macro name not found.')
-            }
-            clear_macro_buttons()
-            create_macro_buttons()
-        }
-
         function add_button(macro, custom_onclick) {
             let macro_button = document.createElement('button')
-            macro_button.innerText = macro.name
+            macro_button.innerText = macro.get('name')
             macro_button.setAttribute('class', " nj-button__content ")
             macro_button.classList.add('nsecondary')
             macro_button.classList.add('nj-button')
@@ -1666,10 +1559,10 @@ class SettingItemDetailsTextEditor {
             console.log(custom_onclick)
             if (custom_onclick === false) {
                 macro_button.addEventListener('click', function () {
-                    say_macro(macro.macro_text)
+                    say_macro(macro.get('macro_text'))
                 })
             }
-            macro_button.id = "macro_button_" + macro.macro_id
+            macro_button.id = "macro_button_" + macro.get('macro_id')
             return macro_button
         }
 
