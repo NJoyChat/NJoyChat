@@ -964,7 +964,7 @@ class SettingItemDetailsTextEditor {
         }
     }
 
-    clear_editor_fields(container_id){
+    clear_editor_fields(container_id) {
         console.log(container_id)
         let macro_editor_container = document.getElementById(container_id)
         for (let child of macro_editor_container.childNodes) {
@@ -1374,27 +1374,6 @@ class SettingItemDetailsTextEditor {
             }
         }
 
-        function create_auto_greeting_admin_buttons() {
-            let auto_greeting_save_button = new TextAutoGreeting(-1, "Save", undefined)
-            let auto_greeting_load_button = new TextAutoGreeting(-2, "Load", undefined)
-            let auto_greeting_delete_button = new TextAutoGreeting(-3, "Delete", undefined)
-            let auto_greeting_name_input = document.createElement('input')
-            auto_greeting_name_input.id = "auto_greeting_name_input"
-            let save_button = add_button(auto_greeting_save_button, true)
-            let load_button = add_button(auto_greeting_load_button, true)
-            let delete_button = add_button(auto_greeting_delete_button, true)
-            save_button.id = 'auto_greeting_button_-1'
-            load_button.id = 'auto_greeting_button_-2'
-            delete_button.id = 'auto_greeting_button_-3'
-            document.getElementById('njoy_auto_greet_admin_buttons_container').appendChild(save_button)
-            document.getElementById('auto_greeting_button_-1').addEventListener('click', save_auto_greeting)
-            document.getElementById('njoy_auto_greet_admin_buttons_container').appendChild(load_button)
-            document.getElementById('auto_greeting_button_-2').addEventListener('click', load_auto_greeting)
-            document.getElementById('njoy_auto_greet_admin_buttons_container').appendChild(delete_button)
-            document.getElementById('auto_greeting_button_-3').addEventListener('click', delete_auto_greeting)
-            document.getElementById('njoy_auto_greet_admin_buttons_container').appendChild(auto_greeting_name_input)
-        }
-
         function create_auto_greeting_buttons() {
             for (const auto_greeting of auto_greetings.keys()) {
                 if (document.getElementById("njoy_auto_greet_buttons_container") !== undefined && document.getElementById("njoy_auto_greet_buttons_container") !== null) {
@@ -1450,11 +1429,6 @@ class SettingItemDetailsTextEditor {
             document.getElementById('njoy_function_buttons_container').appendChild(show_auto_greet_admin_button)
         }
 
-        function toggle_macro_admin_container_visibility() {
-            let macro_admin_buttons_container = document.getElementById('njoy_macro_admin_buttons_container')
-            macro_admin_buttons_container.hidden = !macro_admin_buttons_container.hidden;
-        }
-
         function toggle_auto_greet_admin_container_visibility() {
             let auto_greet_admin_buttons_container = document.getElementById('njoy_auto_greet_admin_buttons_container')
             let auto_greet_buttons_container = document.getElementById('njoy_auto_greet_buttons_container')
@@ -1467,85 +1441,6 @@ class SettingItemDetailsTextEditor {
             }
         }
 
-        function load_auto_greetings() {
-            const greetings = new Map();
-            let counter = 0
-            GM.getValue("auto_greetings").then((auto_greetings_list) => {
-                    if (auto_greetings_list !== undefined) {
-                        auto_greetings_list = new Map(JSON.parse(auto_greetings_list))
-                        if (typeof auto_greetings_list[Symbol.iterator] === 'function' && auto_greetings_list.keys() !== undefined) {
-                            for (const auto_greeting_id of auto_greetings_list.keys()) {
-                                GM.getValue(auto_greeting_id).then((value) => {
-                                        if (value !== undefined) {
-                                            greetings.set(auto_greeting_id, JSON.parse(value))
-                                        }
-                                        counter++
-                                        if (counter === auto_greetings_list.size) {
-                                            objects_to_load = objects_to_load.filter(item => item !== 'greetings')
-                                            if (objects_to_load.length === 0) {
-                                                start_running()
-                                            }
-                                            create_auto_greeting_buttons()
-                                        }
-                                    }
-                                )
-                            }
-                        }
-                    } else {
-                        auto_greetings_list = new Map()
-                        GM.setValue("auto_greetings", JSON.stringify([...auto_greetings_list]))
-                    }
-                }
-            )
-            return greetings
-        }
-
-        function save_auto_greeting() {
-            console.log("Save auto_greeting clicked")
-            let auto_greeting_name_input = document.getElementById('auto_greeting_name_input').value
-            let auto_greeting_text_input = document.querySelectorAll('#joychat_input_text')[0].value
-            GM.getValue(10001).then((auto_greeting_id) => {
-                    if (auto_greeting_id === undefined) {
-                        auto_greeting_id = 10002
-                    }
-                    let new_auto_greeting = new TextAutoGreeting(auto_greeting_id, auto_greeting_name_input, auto_greeting_text_input)
-                    console.log(new_auto_greeting)
-                    GM.setValue(auto_greeting_id, JSON.stringify(new_auto_greeting))
-                    auto_greetings.set(auto_greeting_id, new_auto_greeting)
-                    console.log(auto_greetings)
-                    GM.setValue(10001, auto_greeting_id + 1)
-                    GM.setValue("auto_greetings", JSON.stringify([...auto_greetings]))
-                    clear_auto_greeting_buttons()
-                    create_auto_greeting_buttons()
-                }
-            )
-        }
-
-        function load_auto_greeting() {
-            console.log("Load auto_greeting clicked")
-            let auto_greeting_name_input = document.getElementById('auto_greeting_name_input').value
-            let auto_greeting_id = get_key_for_auto_greeting_name(auto_greeting_name_input)
-            if (auto_greeting_id !== -999) {
-                document.querySelectorAll('#joychat_input_text')[0].value = auto_greetings.get(auto_greeting_id).auto_greeting_text
-            } else {
-                console.log('auto_greeting name not found.')
-            }
-        }
-
-        function delete_auto_greeting() {
-            console.log("Delete auto_greeting clicked")
-            let auto_greeting_name_input = document.getElementById('auto_greeting_name_input').value
-            let auto_greeting_id = get_key_for_auto_greeting_name(auto_greeting_name_input)
-            if (auto_greeting_id !== -999) {
-                auto_greetings.delete(auto_greeting_id)
-                GM.setValue(auto_greeting_id, undefined)
-                GM.setValue("auto_greetings", JSON.stringify([...auto_greetings]))
-            } else {
-                console.log('auto_greeting name not found.')
-            }
-            clear_auto_greeting_buttons()
-            create_auto_greeting_buttons()
-        }
 
         function add_button(macro, custom_onclick) {
             let macro_button = document.createElement('button')
@@ -1576,16 +1471,6 @@ class SettingItemDetailsTextEditor {
                     joychat_send_button.dispatchEvent(new Event('click', {bubbles: true}))
                 }
             }
-        }
-
-        function get_key_for_macro_name(macro_name) {
-            for (let macro_key of macros.keys()) {
-                let current_macro = macros.get(macro_key)
-                if (current_macro.name === macro_name) {
-                    return macro_key
-                }
-            }
-            return -999
         }
 
         function get_key_for_auto_greeting_name(auto_greeting_name) {
@@ -2257,24 +2142,6 @@ class SettingItemDetailsTextEditor {
                 });
             t1.play()
             return container_div
-        }
-
-        function palette(t) {
-            let dc_offset = math.matrix([0.098, 0.058, 1.268]) // DC Offset
-            let amp = math.matrix([0.152, 0.843, 0.411]) // AMP
-            let frequency = math.matrix([3.358, 0.672, -1.778]) // Freq
-            let phase = math.matrix([-1.052, -0.718, -2.873]) // Phase
-            let c_times_t = math.dotMultiply(frequency, t)
-            let plus_d = math.add(c_times_t, phase)
-            let intermediate_vector = math.dotMultiply(plus_d, 6.28318)
-            return math.add(dc_offset, math.multiply(amp, math.matrix([math.subset(intermediate_vector, math.index([0])), math.subset(intermediate_vector, math.index([1])), math.subset(intermediate_vector, math.index([2]))])))
-        }
-
-        function palette_to_rgb_string(palette) {
-            let r = math.subset(palette, math.index([0]))
-            let g = math.subset(palette, math.index([1]))
-            let b = math.subset(palette, math.index([2]))
-            return `rgb(${r >> 0},${g >> 0},${b >> 0})`
         }
 
     }
