@@ -13,5 +13,5 @@ Hier erneut STRG + A drücken um alles zu markieren und danach STRG + V um den v
 danach auf speichern drücken.
 ![Step4](https://raw.githubusercontent.com/NJoyChat/NJoyChat/master/step4.png)
 Oben im Reiter "Einstellungen" kontrollieren ob die Update Einstellungen korrekt eingestellt sind. Der update link ist der link von oben.
-https://raw.githubusercontent.com/NJoyChat/NJoyChat/master/NJoyChat.js
+https://raw.githubusercontent.com/NJoyChat/NJoyChat/master/NJoyChat.user.js
 ![Step5](https://raw.githubusercontent.com/NJoyChat/NJoyChat/master/step5.png)
