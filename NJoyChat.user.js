@@ -63,6 +63,26 @@ class TextAutoGreeting {
         this.name = name
         this.auto_greeting_text = auto_greeting_text
     }
+
+    static fromJSON(json) {
+        const text_macro = new TextMacro();
+
+        text_macro.set('auto_greeting_id', json.macro_id)
+        text_macro.set('name', json.name)
+        text_macro.set('display_name', json.display_name)
+        text_macro.set('auto_greeting_text', json.macro_text)
+        return text_macro;
+    }
+
+    toJSON() {
+        return {
+            macro_id: this.get('auto_greeting_id'),
+            name: this.get('name'),
+            display_name: this.get('display_name'),
+            macro_text: this.get('auto_greeting_text'),
+        }
+    }
+
 }
 
 // New Settings Classes
@@ -1039,6 +1059,7 @@ class SettingItemDetailsTextEditor {
         let IMAGE_MAX_WIDTH = 250
         let IMAGE_MAX_HEIGHT = 250
         let freq = Math.PI * 2 / 100; // TODO Possibly make this global or a config value?
+        let auto_greetings = new Map()
         let username_self = undefined
         let emoji_list = ["",
             "//cfnimg.joyclub.de/smile/g.gif",
@@ -1105,7 +1126,7 @@ class SettingItemDetailsTextEditor {
                 create_animation_buttons()
                 create_function_buttons()
                 create_macro_buttons()
-                //create_auto_greeting_admin_buttons()
+                load_auto_greetings()
                 watch_for_textarea_submit()
             }
         }
@@ -1192,6 +1213,10 @@ class SettingItemDetailsTextEditor {
             let macro_editor_setting = new Setting('macro_editor_setting', 'Macro Editor', 'text_editor_macro', macro_settings_group.get('name'), [], [])
             macro_settings_group.add_setting(macro_editor_setting)
             let auto_greet_settings_group = new SettingsGroup('auto_greet', 'Auto-Begrüßung', undefined)
+            let auto_greet_editor_header = new Setting('auto_greet_editor_header', 'Auto-Begrüßungs Editor', 'section_header', auto_greet_settings_group.get('name'), 'Auto-Begrüßungs Editor', ['Auto-Begrüßungs Editor'])
+            auto_greet_settings_group.add_setting(auto_greet_editor_header)
+            let auto_greet_editor_setting = new Setting('auto_greet_editor_setting', 'Auto-Begrüßungs Editor', 'text_editor_macro', auto_greet_settings_group.get('name'), [], [])
+            auto_greet_settings_group.add_setting(auto_greet_editor_setting)
             settings_collection.add_group(general_settings_group)
             settings_collection.add_group(appearance_settings_group)
             settings_collection.add_group(macro_settings_group)
@@ -1291,7 +1316,16 @@ class SettingItemDetailsTextEditor {
                 create_close_and_save_settings_button()
                 clear_macro_buttons()
                 create_macro_buttons()
+                auto_greetings.clear()
+                load_auto_greetings()
             }
+        }
+
+        function load_auto_greetings(){
+            for (const macro of settings.get('groups').get('auto_greet').get('loaded_settings').get('auto_greet_editor_setting').get('value')) {
+                    let auto_greeting = TextAutoGreeting.fromJSON(JSON.parse(macro))
+                    auto_greetings.set(auto_greeting.name, auto_greeting)
+                }
         }
 
         function create_animation_buttons() {
@@ -1355,12 +1389,6 @@ class SettingItemDetailsTextEditor {
             animation_buttons_container.style.height = '50px'
             let macro_buttons_container = document.createElement('div')
             macro_buttons_container.id = "njoy_macro_buttons_container"
-            let auto_greet_admin_buttons_container = document.createElement('div')
-            auto_greet_admin_buttons_container.id = "njoy_auto_greet_admin_buttons_container"
-            auto_greet_admin_buttons_container.hidden = true
-            let auto_greet_buttons_container = document.createElement('div')
-            auto_greet_buttons_container.id = "njoy_auto_greet_buttons_container"
-            auto_greet_buttons_container.hidden = true
 
             //parent_container.appendChild(animation_buttons_container)
             document.querySelector('#joychat_statusbar').style.display = 'flex'
@@ -1368,8 +1396,6 @@ class SettingItemDetailsTextEditor {
             document.querySelector('.statusbar_general').replaceWith(animation_buttons_container)
             parent_container.appendChild(function_buttons_container)
             parent_container.appendChild(macro_buttons_container)
-            parent_container.appendChild(auto_greet_admin_buttons_container)
-            parent_container.appendChild(auto_greet_buttons_container)
             let toolbar = document.querySelectorAll('.toolbar')[0]
             if (toolbar !== null) {
                 toolbar.after(parent_container)
@@ -1381,21 +1407,6 @@ class SettingItemDetailsTextEditor {
                 if (document.getElementById("njoy_macro_buttons_container") !== undefined && document.getElementById("njoy_macro_buttons_container") !== null) {
                     document.getElementById("njoy_macro_buttons_container").appendChild(add_button(TextMacro.fromJSON(JSON.parse(macro)), false))
                 }
-            }
-        }
-
-        function create_auto_greeting_buttons() {
-            for (const auto_greeting of auto_greetings.keys()) {
-                if (document.getElementById("njoy_auto_greet_buttons_container") !== undefined && document.getElementById("njoy_auto_greet_buttons_container") !== null) {
-                    document.getElementById("njoy_auto_greet_buttons_container").appendChild(add_button(auto_greetings.get(auto_greeting), false))
-                }
-            }
-        }
-
-        function clear_auto_greeting_buttons() {
-            let auto_greet_button_container = document.getElementById('njoy_auto_greet_buttons_container')
-            while (auto_greet_button_container.firstChild) {
-                auto_greet_button_container.removeChild(auto_greet_button_container.lastChild);
             }
         }
 
@@ -1431,24 +1442,6 @@ class SettingItemDetailsTextEditor {
             document.querySelector('div.bell_switch').parentNode.insertBefore(document.querySelector('div.bell_switch'), show_settings_container)
             //document.getElementById('njoy_function_buttons_container').appendChild(show_settings_button)
             create_close_and_save_settings_button()
-            let show_auto_greet_admin_button = document.createElement('button')
-            show_auto_greet_admin_button.innerText = 'Toggle Auto-greet Admin.'
-            show_auto_greet_admin_button.setAttribute('class', " nj-button__content nsecondary nj-button")
-            show_auto_greet_admin_button.addEventListener("click", toggle_auto_greet_admin_container_visibility)
-            show_auto_greet_admin_button.id = 'toggle_auto_greet_admin_button'
-            document.getElementById('njoy_function_buttons_container').appendChild(show_auto_greet_admin_button)
-        }
-
-        function toggle_auto_greet_admin_container_visibility() {
-            let auto_greet_admin_buttons_container = document.getElementById('njoy_auto_greet_admin_buttons_container')
-            let auto_greet_buttons_container = document.getElementById('njoy_auto_greet_buttons_container')
-            if (auto_greet_admin_buttons_container.hidden) {
-                auto_greet_admin_buttons_container.hidden = false
-                auto_greet_buttons_container.hidden = false
-            } else {
-                auto_greet_admin_buttons_container.hidden = true
-                auto_greet_buttons_container.hidden = true
-            }
         }
 
 
@@ -1471,10 +1464,12 @@ class SettingItemDetailsTextEditor {
             let joychat_input_box = document.querySelectorAll('#joychat_input_text')[0]
             if (joychat_input_box !== null && joychat_input_box !== undefined) {
                 joychat_input_box.value = macro_text;
+                pre_submit_modifications()
                 let joychat_send_button = document.querySelectorAll('.send')[0]
                 if (joychat_send_button !== undefined && joychat_send_button !== null) {
                     joychat_send_button.dispatchEvent(new Event('click', {bubbles: true}))
                 }
+                joychat_input_box.value = ''
             }
         }
 
@@ -1603,8 +1598,9 @@ class SettingItemDetailsTextEditor {
             }
             for (let new_user of new_users.keys()) {
                 users.set(new_user, new_users.get(new_user))
-                if (get_key_for_auto_greeting_name(new_user) !== -999) {
-                    let auto_greeting = auto_greetings.get(get_key_for_auto_greeting_name(new_user)).auto_greeting_text
+
+                if (auto_greetings.has(new_user)) {
+                    let auto_greeting = auto_greetings.get(new_user).auto_greeting_text
                     let joychat_input_box = document.querySelectorAll('#joychat_input_text')[0]
                     joychat_input_box.value = auto_greeting
                     let joychat_send_button = document.querySelectorAll('.send')[0]
@@ -1974,7 +1970,7 @@ class SettingItemDetailsTextEditor {
 
         function create_njoy_image(emoji_descriptor) {
             let emoji_link
-             if (emoji_descriptor.startsWith('#img#')) {
+            if (emoji_descriptor.startsWith('#img#')) {
                 emoji_link = emoji_descriptor.split('#img#')[1].slice(0, -1)
             }
             if (emoji_link !== undefined) {
