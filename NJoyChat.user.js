@@ -213,8 +213,6 @@ class SettingsMenu {
     }
 
     load_settings() {
-        console.log('Loading settings...', this.settings_collection)
-        console.log(this.settings_collection.get('groups'))
         let iterator
         try {
             iterator = this.settings_collection.get('groups').keys()
@@ -281,7 +279,6 @@ class SettingsMenu {
 class SettingsGroupEntry {
     constructor(setting) {
         this.settings_group = setting
-        console.log(setting)
         this.setting_group_display_name = this.settings_group.get('display_name')
         this.settings_list = document.getElementById('njoy_settings_list')
         this.settings_detail_tab_container = document.getElementById("njoy_settings_detail_tab")
@@ -636,15 +633,15 @@ class SettingItemDetailsGradientEditor {
 
     update_demo_div() {
         let new_demo_div = this.parentNode.preview_function('Das hier ist ein Demo Text der lang genug sein muss, um den Farbverlauf wirklich gut darzustellen.', this.parentNode.setting.get('value'))
-        console.log('Created new demo div with gradient settings', this.parentNode.setting.get('value'))
-        console.log('Demo divs (new/old):', new_demo_div, this.parentNode.querySelectorAll('#demo_div_gradient'))
+        //console.log('Created new demo div with gradient settings', this.parentNode.setting.get('value'))
+        //console.log('Demo divs (new/old):', new_demo_div, this.parentNode.querySelectorAll('#demo_div_gradient'))
         setTimeout(function () {
             for (let old_demo_div of this.parentNode.querySelectorAll('#demo_div_gradient')) {
-                console.log('Removing: ', old_demo_div)
+                //console.log('Removing: ', old_demo_div)
                 old_demo_div.t1.kill()
                 old_demo_div.innerHTML = ''
                 old_demo_div.remove()
-                console.log(old_demo_div)
+                //console.log(old_demo_div)
             }
         }, 5000)
         setTimeout(function (new_demo_div) {
@@ -652,7 +649,7 @@ class SettingItemDetailsGradientEditor {
         }, 10000, new_demo_div)
 
         this.parentNode.appendChild(new_demo_div)
-        console.log('Added', new_demo_div)
+        //console.log('Added', new_demo_div)
     }
 
     create_value_slider(parent, value_index, min, max, step, name) {
@@ -746,7 +743,6 @@ class SettingItemDetailsGradientEditor {
             this.slider.value = parseFloat(this.value).toFixed(this.digits)
         }
         parent_node.setting.set('value', currentValue)
-        console.log('Set value to:', currentValue)
     }
 
     update_number_input_and_value() {
@@ -760,7 +756,6 @@ class SettingItemDetailsGradientEditor {
             this.number_input.value = parseFloat(this.value).toFixed(this.digits)
         }
         parent_node.setting.set('value', currentValue)
-        console.log('Set value to:', currentValue)
     }
 
     make_text_sinebow(text_to_rainbowify, gradient_settings) {
@@ -965,7 +960,6 @@ class SettingItemDetailsTextEditor {
     }
 
     clear_editor_fields(container_id) {
-        console.log(container_id)
         let macro_editor_container = document.getElementById(container_id)
         for (let child of macro_editor_container.childNodes) {
             child.childNodes[1].value = ''
@@ -1028,7 +1022,7 @@ class SettingItemDetailsTextEditor {
 
 (async () => {
         'use strict';
-
+        this.$ = this.jQuery = jQuery.noConflict(true); // Don't break existing JQuery
         // Add CSS Styles before anything else to ensure they are always available
         GM.addStyle(".nj-button__content {text-align: center; font-size: 14px; font-weight: bold; padding: 8px 24px; margin: 2px 2px 2px 2px; font-family: JC-ProximaNovaSoft, Verdana, Arial, Helvetica, sans-serif; align-items: center; line-height: 1;}");
         GM.addStyle(".nsecondary {background: #45484a; color: #f1f1f1; border-color: #515455;}");
@@ -1241,6 +1235,16 @@ class SettingItemDetailsTextEditor {
             appearance_settings_group.add_setting(username_picture_replace_gender_setting)
             let username_picture_choice_setting = new Setting('username_picture_choice', 'Username Icon Wahl', 'multi_choice_img_preview', appearance_settings_group.get('name'), "", emoji_list)
             appearance_settings_group.add_setting(username_picture_choice_setting)
+            let custom_emoji_header = new Setting('custom_emoji_header', 'Custom Emoji/Bilder Einstellungen', 'section_header', appearance_settings_group.get('name'), 'Custom Emoji/Bilder Einstellungen', ['Custom Emoji/Bilder Einstellungen'])
+            appearance_settings_group.add_setting(custom_emoji_header)
+            let custom_emoji_disable_globally_setting = new Setting('disable_custom_emoji_globally', 'Custom Emojis Aus (Global)', 'boolean', appearance_settings_group.get('name'), false, [true, false])
+            appearance_settings_group.add_setting(custom_emoji_disable_globally_setting)
+            let custom_emoji_disable_externally_setting = new Setting('disable_custom_emoji_externally', 'Custom Emojis Aus (Andere)', 'boolean', appearance_settings_group.get('name'), false, [true, false])
+            appearance_settings_group.add_setting(custom_emoji_disable_externally_setting)
+            let custom_img_disable_globally_setting = new Setting('disable_custom_img_globally', 'Automatische Bildeinbettung mit #img#url# Aus (Global)', 'boolean', appearance_settings_group.get('name'), false, [true, false])
+            appearance_settings_group.add_setting(custom_img_disable_globally_setting)
+            let custom_img_disable_externally_setting = new Setting('disable_custom_img_externally', 'Automatische Bildeinbettung mit #img#url# (Andere)', 'boolean', appearance_settings_group.get('name'), false, [true, false])
+            appearance_settings_group.add_setting(custom_img_disable_externally_setting)
 
             return appearance_settings_group
         }
@@ -1454,10 +1458,6 @@ class SettingItemDetailsTextEditor {
             macro_button.setAttribute('class', " nj-button__content ")
             macro_button.classList.add('nsecondary')
             macro_button.classList.add('nj-button')
-            console.log("Adding button for macro:")
-            console.log(macro)
-            console.log("Custom onclick:")
-            console.log(custom_onclick)
             if (custom_onclick === false) {
                 macro_button.addEventListener('click', function () {
                     say_macro(macro.get('macro_text'))
@@ -1468,7 +1468,6 @@ class SettingItemDetailsTextEditor {
         }
 
         function say_macro(macro_text) {
-            console.log("Say Macro triggered.")
             let joychat_input_box = document.querySelectorAll('#joychat_input_text')[0]
             if (joychat_input_box !== null && joychat_input_box !== undefined) {
                 joychat_input_box.value = macro_text;
@@ -1490,11 +1489,9 @@ class SettingItemDetailsTextEditor {
         }
 
         function convert_editor_to_custom_font() {
-            console.log("Convert editor to custom font")
             let joychat_input_box = document.querySelectorAll('#joychat_input_text')[0]
             if (joychat_input_box !== null) {
                 let text = joychat_input_box.value;
-                console.log(text);
                 let words = text.split(' ');
                 let converted_text = '';
                 let special_characters = ['*', '@', '#']
@@ -1554,7 +1551,6 @@ class SettingItemDetailsTextEditor {
                     }
                 }
             })()
-            console.log(document.querySelectorAll('ul.userlist:nth-child(3)')[0])
             observeDOM(document.querySelectorAll('ul.userlist:nth-child(3)')[0], function (m) {
                 var addedNodes = [], removedNodes = [];
                 m.forEach(record => record.addedNodes.length & addedNodes.push(...record.addedNodes))
@@ -1681,7 +1677,6 @@ class SettingItemDetailsTextEditor {
                 let new_chat_content = document.createElement('p')
                 let control_codes = undefined
                 let lucky_punch = process_control_spaces(actual_chat_content.childNodes[actual_chat_content.childNodes.length - 1].nodeValue)
-                console.log('Lucky punch! ', lucky_punch)
                 if (lucky_punch[1].length === 0) {
                     // didn't find control spaces on first try, keep digging.
                     for (let i = actual_chat_content.childNodes.length - 1; i >= 0; i--) {
@@ -1723,29 +1718,39 @@ class SettingItemDetailsTextEditor {
                         }
                     }
                 } else {
-                    console.log('found spaces')
                     // found control spaces on first try.
                     actual_chat_content.childNodes[actual_chat_content.childNodes.length - 1].nodeValue = lucky_punch[0]
                     control_codes = lucky_punch[1]
                     let individual_control_codes = split_control_codes(control_codes)
                     let control_code_map = new Map()
-                    control_code_map.set(1, first_control_code)
-                    control_code_map.set(2, second_control_code_handling)
-                    control_code_map.set(3, text_control_code_handler)
+                    control_code_map.set(1, chat_message_njoy_emoji_handler)
+                    control_code_map.set(2, chat_message_njoy_image_handler)
+                    control_code_map.set(3, text_rainbow_message_control_code_handler)
                     control_code_map.set(4, chat_message_header_username_icon_control_code_handler)
                     control_code_map.set(5, chat_message_header_rainbow_user_name_control_code_handler)
+
                     for (let i = actual_chat_content.childNodes.length - 1; i >= 0; i--) {
-                        let message = actual_chat_content.childNodes[i]
+                        let message = [actual_chat_content.childNodes[i]]
 
                         for (let control_code in individual_control_codes) {
-                            console.log('checking control code', individual_control_codes[control_code][0])
-                            console.log('control code map has control code: ', control_code_map.has(individual_control_codes[control_code][0]))
+                            console.log('checking control code ', individual_control_codes[control_code][0], ' Map has control code: ', control_code_map.has(individual_control_codes[control_code][0]))
                             if (control_code_map.has(individual_control_codes[control_code][0])) {
-                                message = control_code_map.get(individual_control_codes[control_code][0])(message, individual_control_codes[control_code].slice(2, individual_control_codes[control_code].length))
+                                if (Array.isArray(message)) {
+                                    //console.log('Invoking child handlers...')
+                                    message = invoke_handler_for_children(message, individual_control_codes[control_code].slice(2, individual_control_codes[control_code].length), control_code_map.get(individual_control_codes[control_code][0]))
+                                } else {
+                                    message = control_code_map.get(individual_control_codes[control_code][0])(message, individual_control_codes[control_code].slice(2, individual_control_codes[control_code].length))
+                                }
                             }
                         }
-                        new_chat_content.appendChild(message)
-                        new_chat_content.insertBefore(message, new_chat_content.firstChild)
+
+                        if (Array.isArray(message)) {
+                            append_before_first_child(message, new_chat_content)
+                        } else {
+                            //console.log('Straight appending message (should not happen)', message)
+                            new_chat_content.appendChild(message)
+                            new_chat_content.insertBefore(message, new_chat_content.firstChild)
+                        }
                     }
 
                 }
@@ -1755,22 +1760,51 @@ class SettingItemDetailsTextEditor {
 
 /////////////////////////////////////////// HANDLERS ///////////////////////////////////////////////////////////////////
 
-        function first_control_code(message, options) {
-            console.log('First control code handler: ', message, options)
-            return message
+        function append_before_first_child(child_message_node, parent_message) {
+            if (Array.isArray(child_message_node)) {
+                for (let child_message of child_message_node) {
+                    if (Array.isArray(child_message)) {
+                        append_before_first_child(child_message, parent_message)
+                    } else {
+                        //console.log('Appending child message', child_message)
+                        parent_message.appendChild(child_message)
+                        parent_message.insertBefore(child_message, parent_message.firstChild)
+                    }
+                }
+            }
         }
 
-        function second_control_code_handling(message, options) {
-            console.log('Second control code handler: ', message, options)
-            return message
+        function invoke_handler_for_children(message, options, handler) {
+            let result = []
+            if (Array.isArray(message)) {
+                for (let child of message) {
+                    let sub_result
+                    if (Array.isArray(child)) {
+                        //console.log('Recursing child handler invocation')
+                        //console.log('Invoking handler:', handler, ' for message ', child, ' of ', message)
+                        sub_result = invoke_handler_for_children(child, options, handler)
+                    } else {
+                        //console.log('Invoking handler:', handler, ' for message ', child, ' of ', message)
+                        sub_result = handler(child, options)
+                    }
+                    if (Array.isArray(sub_result)) {
+                        for (let child_result of sub_result) {
+                            result.push(child_result)
+                        }
+                    } else {
+                        result.push(sub_result)
+                    }
+                }
+            }
+            return result
         }
 
-        function text_control_code_handler(message, options) {
+        function text_rainbow_message_control_code_handler(message, options) {
             let gradient_settings = parse_gradient_options(options)
-            console.log('Text control handler:', message, options)
+            console.log('Text rainbow message control handler:', message, options)
             if (message.nodeType !== Node.TEXT_NODE) {
                 console.log('Text control handler invoked on non text node. Returning.')
-                return message
+                return [message]
             }
 
             if (settings.get('groups').get('appearance').get('loaded_settings').get('disable_rainbow_message_globally').get('value')) {
@@ -1783,7 +1817,7 @@ class SettingItemDetailsTextEditor {
                 message = make_text_sinebow(message.nodeValue, gradient_settings)
             }
 
-            return message
+            return [message]
         }
 
         function extract_user_from_message(message) {
@@ -1798,8 +1832,9 @@ class SettingItemDetailsTextEditor {
         }
 
         function chat_message_header_username_icon_control_code_handler(message, options) {
+            console.log('Message header username icon control handler:', message, options)
             if (message.classList === undefined || !message.classList.contains('user')) {
-                return message
+                return [message]
             }
             let gender_icon = message.querySelector('strong > j-gender-icon')
 
@@ -1821,14 +1856,14 @@ class SettingItemDetailsTextEditor {
                 gender_icon.parentNode.insertBefore(emoji_span, gender_icon)
             }
 
-            return message
+            return [message]
         }
 
         function chat_message_header_rainbow_user_name_control_code_handler(message, options) {
             let gradient_settings = parse_gradient_options(options)
-            console.log(options)
+            console.log('Text rainbow message header control handler:', message, options, gradient_settings)
             if (message.classList === undefined || !message.classList.contains('user')) {
-                return message
+                return [message]
             }
 
             if (settings.get('groups').get('appearance').get('loaded_settings').get('disable_rainbow_username_globally').get('value')) {
@@ -1842,7 +1877,44 @@ class SettingItemDetailsTextEditor {
                 let rainbow_user_name = make_text_sinebow(message.querySelector('strong').textContent, gradient_settings)
                 message.querySelector('strong').firstChild.replaceWith(rainbow_user_name)
             }
-            return message
+            return [message]
+        }
+
+        function chat_message_njoy_emoji_handler(message, options) {
+            if (message.nodeType !== Node.TEXT_NODE) {
+                console.log('Text control handler invoked on non text node. Returning.')
+                return [message]
+            }
+            if (settings.get('groups').get('appearance').get('loaded_settings').get('disable_custom_emoji_globally').get('value')) {
+
+            } else if (settings.get('groups').get('appearance').get('loaded_settings').get('disable_custom_emoji_externally').get('value')) {
+                if (extract_user_from_message(message) === extract_user_from_user_list()) {
+                    message = check_for_njoy_emojis(message.nodeValue)
+                }
+            } else {
+                message = check_for_njoy_emojis(message.nodeValue)
+            }
+
+            return [message]
+        }
+
+        function chat_message_njoy_image_handler(message, options) {
+            if (message.nodeType !== Node.TEXT_NODE) {
+                console.log('Text control handler invoked on non text node. Returning.')
+                return [message]
+            }
+
+            if (settings.get('groups').get('appearance').get('loaded_settings').get('disable_custom_img_globally').get('value')) {
+
+            } else if (settings.get('groups').get('appearance').get('loaded_settings').get('disable_custom_img_externally').get('value')) {
+                if (extract_user_from_message(message) === extract_user_from_user_list()) {
+                    message = check_for_njoy_images(message.nodeValue)
+                }
+            } else {
+                message = check_for_njoy_images(message.nodeValue)
+            }
+
+            return [message]
         }
 
         function check_for_njoy_emojis(text) {
@@ -1850,7 +1922,7 @@ class SettingItemDetailsTextEditor {
             let words = text.split(' ');
             let converted_text = '';
             for (let word_to_convert of words) {
-                if (word_to_convert.startsWith('#') && word_to_convert.endsWith('#')) {
+                if (word_to_convert.startsWith('#') && word_to_convert.endsWith('#') && !word_to_convert.startsWith('#img#')) {
                     result.push(document.createTextNode(converted_text))
                     converted_text = ' '
                     result.push(create_njoy_emoji(word_to_convert))
@@ -1862,15 +1934,48 @@ class SettingItemDetailsTextEditor {
             return result
         }
 
-        function create_njoy_emoji(emoji_descriptor) {
+        function check_for_njoy_images(text) {
+            let result = []
+            let words = text.split(' ');
+            let converted_text = '';
+            for (let word_to_convert of words) {
+                if (word_to_convert.startsWith('#img#') && word_to_convert.endsWith('#')) {
+                    result.push(document.createTextNode(converted_text))
+                    converted_text = ' '
+                    result.push(create_njoy_image(word_to_convert))
+                } else {
+                    converted_text += word_to_convert + ' '
+                }
+            }
+            result.push(document.createTextNode(converted_text))
+            return result
+        }
+
+        function create_njoy_emoji(emoji_descriptor, keyword) {
             let emoji_link
-            if (emoji_descriptor.startsWith('#giphy#')) {
-                let emoji_giphy_short_link = emoji_descriptor.split('#giphy#')[1].slice(0, -1)
-                emoji_link = giphy_url + emoji_giphy_short_link
-            } else if (emoji_descriptor.startsWith('#img#')) {
+            emoji_link = njoy_emojis.get(emoji_descriptor)
+            if (emoji_link !== undefined) {
+                let emoji_span = document.createElement('span')
+                emoji_span.setAttribute('class', 'smiley')
+                let emoji_img = document.createElement('img')
+                emoji_img.setAttribute('src', emoji_link)
+                emoji_img.setAttribute('title', emoji_descriptor)
+                emoji_img.setAttribute('alt', emoji_descriptor)
+                emoji_img.onload = function () {
+                    resizeImage(this, IMAGE_MAX_HEIGHT, IMAGE_MAX_WIDTH)
+                }
+                let emoji_alt_span = document.createElement('span')
+                emoji_alt_span.innerText = emoji_descriptor
+                emoji_span.appendChild(emoji_img)
+                emoji_span.appendChild(emoji_alt_span)
+                return emoji_span
+            }
+        }
+
+        function create_njoy_image(emoji_descriptor) {
+            let emoji_link
+             if (emoji_descriptor.startsWith('#img#')) {
                 emoji_link = emoji_descriptor.split('#img#')[1].slice(0, -1)
-            } else {
-                emoji_link = njoy_emojis.get(emoji_descriptor)
             }
             if (emoji_link !== undefined) {
                 let emoji_span = document.createElement('span')
@@ -1962,10 +2067,6 @@ class SettingItemDetailsTextEditor {
             while (message.endsWith(' ')) {
                 message = message.slice(0, message.length - 1)
             }
-            console.log('charcodes...')
-            for (let i = 0; i < message.length; i++) {
-                console.log(message.charCodeAt(i), message.charAt(i))
-            }
             if (message.split(String.fromCharCode(control_space_start_character)).slice(-1)[0] !== undefined && message.split(String.fromCharCode(control_space_start_character)).length === 2) {
                 let all_control_spaces = split_control_spaces(get_control_space_from_message(message))
                 let converted_numbers = []
@@ -2055,6 +2156,13 @@ class SettingItemDetailsTextEditor {
         function pre_submit_modifications() {
             let config_values = []
 
+            // Assume we sent an image or an emoji... TODO: Dynamically check this.
+            config_values.push(1)
+            config_values.push(1)
+            config_values.push(1)
+            config_values.push(2)
+            config_values.push(1)
+            config_values.push(1)
             if (settings.get('groups').get('appearance').get('loaded_settings').get('custom_font_message').get('value')) {
                 convert_editor_to_custom_font()
             }
@@ -2079,6 +2187,7 @@ class SettingItemDetailsTextEditor {
                     config_values.push(encoded_option)
                 }
             }
+
             let control_spaces = convert_number_array_to_control_spaces(config_values)
             let final_control_space_string = String.fromCharCode(control_space_start_character)
             for (let control_space of control_spaces) {
