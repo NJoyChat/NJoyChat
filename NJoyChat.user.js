@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         NJoyChat
 // @namespace    https://www.joyclub.de/chat/login/
-// @version      Alpha-v21
+// @version      Alpha-v22
 // @description  Improves JoyChat with additional utilities.
 // @author       NJoyChat Team
 // @match        https://www.joyclub.de/chat/login/
@@ -1923,14 +1923,14 @@ class SettingItemDetailsTextEditor {
             let converted_text = '';
             for (let word_to_convert of words) {
                 if (word_to_convert.startsWith('#') && word_to_convert.endsWith('#') && !word_to_convert.startsWith('#img#')) {
-                    result.push(document.createTextNode(converted_text))
+                    result.unshift(document.createTextNode(converted_text))
                     converted_text = ' '
-                    result.push(create_njoy_emoji(word_to_convert))
+                    result.unshift(create_njoy_emoji(word_to_convert))
                 } else {
                     converted_text += word_to_convert + ' '
                 }
             }
-            result.push(document.createTextNode(converted_text))
+            result.unshift(document.createTextNode(converted_text))
             return result
         }
 
@@ -1940,14 +1940,14 @@ class SettingItemDetailsTextEditor {
             let converted_text = '';
             for (let word_to_convert of words) {
                 if (word_to_convert.startsWith('#img#') && word_to_convert.endsWith('#')) {
-                    result.push(document.createTextNode(converted_text))
+                    result.unshift(document.createTextNode(converted_text))
                     converted_text = ' '
-                    result.push(create_njoy_image(word_to_convert))
+                    result.unshift(create_njoy_image(word_to_convert))
                 } else {
                     converted_text += word_to_convert + ' '
                 }
             }
-            result.push(document.createTextNode(converted_text))
+            result.unshift(document.createTextNode(converted_text))
             return result
         }
 
