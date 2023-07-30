@@ -1127,6 +1127,7 @@ class SettingItemDetailsTextEditor {
                 create_function_buttons()
                 create_macro_buttons()
                 load_auto_greetings()
+                create_audio_elements()
                 watch_for_textarea_submit()
             }
         }
@@ -1321,11 +1322,29 @@ class SettingItemDetailsTextEditor {
             }
         }
 
-        function load_auto_greetings(){
+        function create_audio_elements() {
+            let audio_container = document.getElementById('njoy_audio_container')
+            let audio = document.createElement('audio')
+            audio.src = 'https://github.com/NJoyChat/NJoyChat/raw/master/sounds/notification/icq-message.wav'
+            audio_container.appendChild(audio)
+            let function_button_container = document.getElementById('njoy_function_buttons_container')
+            let play_audio_button = document.createElement('button')
+            play_audio_button.innerText = 'Play audio'
+            play_audio_button.setAttribute('class', " nj-button__content ")
+            play_audio_button.classList.add('nsecondary')
+            play_audio_button.classList.add('nj-button')
+            play_audio_button.addEventListener('click', function () {
+                audio.play()
+            })
+            play_audio_button.id = 'play_audio_button'
+            function_button_container.appendChild(play_audio_button)
+        }
+
+        function load_auto_greetings() {
             for (const macro of settings.get('groups').get('auto_greet').get('loaded_settings').get('auto_greet_editor_setting').get('value')) {
-                    let auto_greeting = TextAutoGreeting.fromJSON(JSON.parse(macro))
-                    auto_greetings.set(auto_greeting.get('name'), auto_greeting)
-                }
+                let auto_greeting = TextAutoGreeting.fromJSON(JSON.parse(macro))
+                auto_greetings.set(auto_greeting.get('name'), auto_greeting)
+            }
         }
 
         function create_animation_buttons() {
@@ -1390,12 +1409,15 @@ class SettingItemDetailsTextEditor {
             let macro_buttons_container = document.createElement('div')
             macro_buttons_container.id = "njoy_macro_buttons_container"
 
-            //parent_container.appendChild(animation_buttons_container)
+            let audio_container = document.createElement('div')
+            audio_container.id = "njoy_audio_container"
+
             document.querySelector('#joychat_statusbar').style.display = 'flex'
             document.querySelector('#joychat_statusbar').style.height = '50px'
             document.querySelector('.statusbar_general').replaceWith(animation_buttons_container)
             parent_container.appendChild(function_buttons_container)
             parent_container.appendChild(macro_buttons_container)
+            parent_container.appendChild(audio_container)
             let toolbar = document.querySelectorAll('.toolbar')[0]
             if (toolbar !== null) {
                 toolbar.after(parent_container)
