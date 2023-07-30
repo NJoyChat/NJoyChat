@@ -1324,7 +1324,7 @@ class SettingItemDetailsTextEditor {
         function load_auto_greetings(){
             for (const macro of settings.get('groups').get('auto_greet').get('loaded_settings').get('auto_greet_editor_setting').get('value')) {
                     let auto_greeting = TextAutoGreeting.fromJSON(JSON.parse(macro))
-                    auto_greetings.set(auto_greeting.name, auto_greeting)
+                    auto_greetings.set(auto_greeting.get('name'), auto_greeting)
                 }
         }
 
@@ -1600,11 +1600,13 @@ class SettingItemDetailsTextEditor {
                 users.set(new_user, new_users.get(new_user))
 
                 if (auto_greetings.has(new_user)) {
-                    let auto_greeting = auto_greetings.get(new_user).auto_greeting_text
+                    let auto_greeting = auto_greetings.get(new_user).get('auto_greeting_text')
                     let joychat_input_box = document.querySelectorAll('#joychat_input_text')[0]
                     joychat_input_box.value = auto_greeting
+                    pre_submit_modifications()
                     let joychat_send_button = document.querySelectorAll('.send')[0]
                     joychat_send_button.dispatchEvent(new Event('click', {bubbles: true}))
+                    joychat_input_box.value = ''
                 }
             }
         }
@@ -1729,7 +1731,7 @@ class SettingItemDetailsTextEditor {
                         let message = [actual_chat_content.childNodes[i]]
 
                         for (let control_code in individual_control_codes) {
-                            console.log('checking control code ', individual_control_codes[control_code][0], ' Map has control code: ', control_code_map.has(individual_control_codes[control_code][0]))
+                            //console.log('checking control code ', individual_control_codes[control_code][0], ' Map has control code: ', control_code_map.has(individual_control_codes[control_code][0]))
                             if (control_code_map.has(individual_control_codes[control_code][0])) {
                                 if (Array.isArray(message)) {
                                     //console.log('Invoking child handlers...')
@@ -1797,7 +1799,7 @@ class SettingItemDetailsTextEditor {
 
         function text_rainbow_message_control_code_handler(message, options) {
             let gradient_settings = parse_gradient_options(options)
-            console.log('Text rainbow message control handler:', message, options)
+            //console.log('Text rainbow message control handler:', message, options)
             if (message.nodeType !== Node.TEXT_NODE) {
                 console.log('Text control handler invoked on non text node. Returning.')
                 return [message]
@@ -1828,7 +1830,7 @@ class SettingItemDetailsTextEditor {
         }
 
         function chat_message_header_username_icon_control_code_handler(message, options) {
-            console.log('Message header username icon control handler:', message, options)
+            //console.log('Message header username icon control handler:', message, options)
             if (message.classList === undefined || !message.classList.contains('user')) {
                 return [message]
             }
@@ -1857,7 +1859,7 @@ class SettingItemDetailsTextEditor {
 
         function chat_message_header_rainbow_user_name_control_code_handler(message, options) {
             let gradient_settings = parse_gradient_options(options)
-            console.log('Text rainbow message header control handler:', message, options, gradient_settings)
+            //console.log('Text rainbow message header control handler:', message, options, gradient_settings)
             if (message.classList === undefined || !message.classList.contains('user')) {
                 return [message]
             }
