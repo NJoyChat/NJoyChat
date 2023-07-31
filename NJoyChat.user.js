@@ -1686,8 +1686,10 @@ class SettingItemDetailsTextEditor {
         function handle_chat_message_addition(added_nodes) {
             for (let added_node of added_nodes) {
                 if (settings.get('groups').get('general').get('loaded_settings').get('notification_sound_setting').get('value')){
-                    let audio = document.getElementById('njoy_notification_audio')
-                    audio.play()
+                    if (document.hidden) {
+                        let audio = document.getElementById('njoy_notification_audio')
+                        audio.play()
+                    }
                 }
                 let actual_chat_content = added_node.querySelector('p')
                 let new_chat_content = document.createElement('p')
