@@ -1092,6 +1092,9 @@ class SettingItemDetailsMultipleChoiceUserNames {
 
         this.div_container.button = document.createElement('button')
         this.div_container.button.innerText = 'Create for user'
+        this.div_container.button.setAttribute('class', " nj-button__content ")
+        this.div_container.button.classList.add('nsecondary')
+        this.div_container.button.classList.add('nj-button')
         this.div_container.appendChild(this.div_container.button)
 
         this.div_container.select = document.createElement('select')
