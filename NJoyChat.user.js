@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         NJoyChat
 // @namespace    https://www.joyclub.de/chat/login/
-// @version      Alpha-v23
+// @version      Alpha-v24
 // @description  Improves JoyChat with additional utilities.
 // @author       NJoyChat Team
 // @match        https://www.joyclub.de/chat/login/
@@ -389,8 +389,11 @@ class SettingsGroupDetails {
             let gradient_editor = new SettingItemDetailsGradientEditor(setting)
             return [gradient_editor.div_container]
         } else if (setting_type === 'text_editor_macro') {
-            let macro_editor = new SettingItemDetailsTextEditor(setting)
+            let macro_editor = new SettingItemDetailsTextEditor(setting, this.settings_detail_container_div)
             return [macro_editor.div_container]
+        } else if (setting_type === 'multi_choice_user_names') {
+            let multi_choice_user_names = new SettingItemDetailsMultipleChoiceUserNames(setting)
+            return [multi_choice_user_names.div_container]
         }
         let setting_details = document.createElement('p')
         let setting_display_name = setting.get('display_name')
@@ -854,17 +857,26 @@ function sinebow(freq1, freq2, freq3, phase1, phase2, phase3, amp1, amp2, amp3, 
 
 class SettingItemDetailsTextEditor {
 
-    constructor(setting) {
+    constructor(setting, parent) {
         this.div_container = create_settings_container_div(setting)
         this.div_container.style.display = 'flex'
         this.div_container.style.flexDirection = 'column'
         this.div_container.style.flex = '1'
-        this.div_container.id = 'setting_item_detail_text_editor_container_' + setting.get('name')
+        this.div_container.setAttribute('id', 'setting_item_detail_text_editor_container_' + setting.get('name'))
 
         let setting_details = document.createElement('p')
         setting_details.textContent = setting.get('display_name') + ':'
         setting_details.style.float = 'left'
         this.div_container.appendChild(setting_details)
+
+        let user_name_choice = parent.querySelector('#setting_item_detail_multi_choice_user_names_container_' + setting.get('name') + '_user_name_choice')
+        if (user_name_choice !== null) {
+            this.user_name_choice = user_name_choice
+            console.log(this.user_name_choice)
+            this.user_name_choice.button.addEventListener('click', this.create_new_macro_for_user_name)
+            console.log(this.user_name_choice.button)
+            this.div_container.appendChild(this.user_name_choice)
+        }
 
         let macros = setting.get('value')
         let loaded_macros = []
@@ -908,6 +920,32 @@ class SettingItemDetailsTextEditor {
         this.div_container.appendChild(this.delete_macro_button)
 
         this.div_container.appendChild(this.create_macro_editor())
+    }
+
+    create_new_macro_for_user_name() {
+        console.log(this)
+        console.log(this.parentNode)
+        let setting_container = this.parentNode.parentNode;
+        console.log(setting_container)
+        let user_name_select = setting_container.select;
+        console.log(user_name_select)
+        let current_value = setting_container.setting.get('value')
+        console.log(current_value)
+        let text_macro
+        if (current_value.length === 0) {
+            user_name_select.removeChild(user_name_select.firstChild)
+        }
+        let possible_user_names_select = this.parentNode.select;
+        text_macro = new TextMacro(current_value.length + 1, possible_user_names_select.value, 'Insert your macro text here.')
+        current_value.push(JSON.stringify(text_macro))
+        setting_container.setting.set('value', current_value)
+        let possible_option_value = document.createElement('option')
+        possible_option_value.textContent = text_macro.get('display_name')
+        possible_option_value.value_index = current_value.length - 1
+        user_name_select.lastChild.before(possible_option_value)
+        user_name_select.selectedOptions[0].selected = false
+        possible_option_value.selected = true
+        setting_container.set_editor_fields(text_macro, setting_container.id + '_macro_editor_container')
     }
 
     create_macro_editor() {
@@ -1038,6 +1076,83 @@ class SettingItemDetailsTextEditor {
     }
 
 
+}
+
+class SettingItemDetailsMultipleChoiceUserNames {
+
+    constructor(setting) {
+        this.div_container = create_settings_container_div(setting)
+        this.div_container.setAttribute('id', 'setting_item_detail_multi_choice_user_names_container_' + setting.get('name'))
+        console.log('Created: ', this.div_container.id)
+
+        let setting_details = document.createElement('p')
+        setting_details.textContent = 'Users currently in chat:'
+        setting_details.style.float = 'left'
+        this.div_container.appendChild(setting_details)
+
+        this.div_container.button = document.createElement('button')
+        this.div_container.button.innerText = 'Create for user'
+        this.div_container.appendChild(this.div_container.button)
+
+        this.div_container.select = document.createElement('select')
+
+        this.add_users_in_chat_to_options()
+
+        onVisible(this.div_container, this.add_users_in_chat_to_options)
+
+        this.div_container.select.addEventListener('change', this.toggle_setting)
+        this.div_container.select.style.float = 'right'
+        this.div_container.appendChild(this.div_container.select)
+    }
+
+    add_users_in_chat_to_options(div_container) {
+        if (div_container !== undefined) {
+            for (let i = div_container.select.options.length; i >= 0; i--) {
+                div_container.select.remove(i)
+            }
+            let users_in_chat = extract_all_names_from_user_list()
+            for (let possible_value of users_in_chat) {
+                let possible_option_value = document.createElement('option')
+                possible_option_value.textContent = possible_value
+                div_container.select.appendChild(possible_option_value)
+            }
+            if (div_container.select.firstChild !== null && div_container.select.firstChild !== undefined) {
+                div_container.select.firstChild.selected = true
+            }
+        }
+    }
+
+
+    toggle_setting() {
+        this.parentNode.setting.set('value', this.value)
+        this.parentNode.setting.save_setting()
+    }
+
+}
+
+function extract_all_names_from_user_list() {
+    let user_names = []
+    let user_lists = document.querySelectorAll('ul.userlist')
+    for (let user_list of user_lists) {
+        if (user_list.style.display !== 'none') {
+            for (let list_item of user_list.querySelectorAll('li.channel_user')) {
+                user_names.push(list_item.querySelector('div.channel_user_info > span.joychat_user_name').innerText)
+            }
+        }
+    }
+    return user_names
+}
+
+function onVisible(element, callback) {
+    new IntersectionObserver((entries, observer) => {
+        entries.forEach(entry => {
+            if (entry.intersectionRatio > 0) {
+                console.log('On visible fired.')
+                callback(element);
+                observer.disconnect();
+            }
+        });
+    }).observe(element);
 }
 
 (async () => {
@@ -1218,6 +1333,8 @@ class SettingItemDetailsTextEditor {
             let auto_greet_settings_group = new SettingsGroup('auto_greet', 'Auto-Begrüßung', undefined)
             let auto_greet_editor_header = new Setting('auto_greet_editor_header', 'Auto-Begrüßungs Editor', 'section_header', auto_greet_settings_group.get('name'), 'Auto-Begrüßungs Editor', ['Auto-Begrüßungs Editor'])
             auto_greet_settings_group.add_setting(auto_greet_editor_header)
+            let auto_greet_user_name_choice = new Setting('auto_greet_editor_setting_user_name_choice', 'Users in channel', 'multi_choice_user_names', auto_greet_settings_group.get('name'), 'Users in channel', ['Users in channel'])
+            auto_greet_settings_group.add_setting(auto_greet_user_name_choice)
             let auto_greet_editor_setting = new Setting('auto_greet_editor_setting', 'Auto-Begrüßungs Editor', 'text_editor_macro', auto_greet_settings_group.get('name'), [], [])
             auto_greet_settings_group.add_setting(auto_greet_editor_setting)
             settings_collection.add_group(general_settings_group)
@@ -1685,7 +1802,7 @@ class SettingItemDetailsTextEditor {
 
         function handle_chat_message_addition(added_nodes) {
             for (let added_node of added_nodes) {
-                if (settings.get('groups').get('general').get('loaded_settings').get('notification_sound_setting').get('value')){
+                if (settings.get('groups').get('general').get('loaded_settings').get('notification_sound_setting').get('value')) {
                     if (document.hidden || added_node.hidden) { // Non active chat tabs aren't really hidden.
                         let audio = document.getElementById('njoy_notification_audio')
                         audio.play()
@@ -1828,7 +1945,7 @@ class SettingItemDetailsTextEditor {
             if (settings.get('groups').get('appearance').get('loaded_settings').get('disable_rainbow_message_globally').get('value')) {
 
             } else if (settings.get('groups').get('appearance').get('loaded_settings').get('disable_rainbow_message_externally').get('value')) {
-                if (extract_user_from_message(message) === extract_user_from_user_list()) {
+                if (extract_user_from_message(message) === extract_own_user_from_user_list()) {
                     message = make_text_sinebow(message.nodeValue, gradient_settings)
                 }
             } else {
@@ -1842,11 +1959,25 @@ class SettingItemDetailsTextEditor {
             return message.parentNode.querySelector('.user > strong').textContent
         }
 
-        function extract_user_from_user_list() {
+        function extract_own_user_from_user_list() {
             if (username_self === undefined) {
                 username_self = document.querySelector('li.isme > div.channel_user_info > span.joychat_user_name').innerText
             }
             return username_self
+        }
+
+        function check_if_self_has_key() {
+            return !(document.querySelector('li.isme > div.channel_user_info > span.joychat_user_name') === undefined)
+        }
+
+        function extract_age_from_userlist_for_username(username_to_extract) {
+            let all_user_infos = document.querySelectorAll('li.channel_user > div.channel_user_info')
+            for (let user_info of all_user_infos) {
+                let username = user_info.querySelector('span.joychat_user_name').innerText
+                if (username === username_to_extract) {
+                    return user_info.querySelector('div:nth-child(2) > span:nth-child(1)').innerText.split(' ')[0]
+                }
+            }
         }
 
         function chat_message_header_username_icon_control_code_handler(message, options) {
@@ -1887,7 +2018,7 @@ class SettingItemDetailsTextEditor {
             if (settings.get('groups').get('appearance').get('loaded_settings').get('disable_rainbow_username_globally').get('value')) {
 
             } else if (settings.get('groups').get('appearance').get('loaded_settings').get('disable_rainbow_username_externally').get('value')) {
-                if (extract_user_from_message(message) === extract_user_from_user_list()) {
+                if (extract_user_from_message(message) === extract_own_user_from_user_list()) {
                     let rainbow_user_name = make_text_sinebow(message.querySelector('strong').textContent, gradient_settings)
                     message.querySelector('strong').firstChild.replaceWith(rainbow_user_name)
                 }
@@ -1906,7 +2037,7 @@ class SettingItemDetailsTextEditor {
             if (settings.get('groups').get('appearance').get('loaded_settings').get('disable_custom_emoji_globally').get('value')) {
 
             } else if (settings.get('groups').get('appearance').get('loaded_settings').get('disable_custom_emoji_externally').get('value')) {
-                if (extract_user_from_message(message) === extract_user_from_user_list()) {
+                if (extract_user_from_message(message) === extract_own_user_from_user_list()) {
                     message = check_for_njoy_emojis(message.nodeValue)
                 }
             } else {
@@ -1925,7 +2056,7 @@ class SettingItemDetailsTextEditor {
             if (settings.get('groups').get('appearance').get('loaded_settings').get('disable_custom_img_globally').get('value')) {
 
             } else if (settings.get('groups').get('appearance').get('loaded_settings').get('disable_custom_img_externally').get('value')) {
-                if (extract_user_from_message(message) === extract_user_from_user_list()) {
+                if (extract_user_from_message(message) === extract_own_user_from_user_list()) {
                     message = check_for_njoy_images(message.nodeValue)
                 }
             } else {
