@@ -1205,6 +1205,8 @@ class SettingItemDetailsTextEditor {
             let general_settings_group = new SettingsGroup('general', 'Allgemein', undefined)
             let chat_setting_header = new Setting('chat_setting_header', 'Chat Einstellungen', 'section_header', general_settings_group.get('name'), 'Chat Einstellungen', ['Chat Einstellungen'])
             general_settings_group.add_setting(chat_setting_header)
+            let notification_sound_setting = new Setting('notification_sound_setting', 'Benachrichtigungston', 'boolean', general_settings_group.get('name'), true, [true, false])
+            general_settings_group.add_setting(notification_sound_setting)
             let scrollback_buffer_setting = new Setting('scrollback_buffer', 'Gleichzeitig angezeigte Nachrichten', 'string', general_settings_group.get('name'), '50', ['50', '100', '150', 'Infinite'])
             general_settings_group.add_setting(scrollback_buffer_setting)
             let appearance_settings_group = create_default_appearance_group_settings()
@@ -1326,18 +1328,8 @@ class SettingItemDetailsTextEditor {
             let audio_container = document.getElementById('njoy_audio_container')
             let audio = document.createElement('audio')
             audio.src = 'https://github.com/NJoyChat/NJoyChat/raw/master/sounds/notification/icq-message.wav'
+            audio.id = 'njoy_notification_audio'
             audio_container.appendChild(audio)
-            let function_button_container = document.getElementById('njoy_function_buttons_container')
-            let play_audio_button = document.createElement('button')
-            play_audio_button.innerText = 'Play audio'
-            play_audio_button.setAttribute('class', " nj-button__content ")
-            play_audio_button.classList.add('nsecondary')
-            play_audio_button.classList.add('nj-button')
-            play_audio_button.addEventListener('click', function () {
-                audio.play()
-            })
-            play_audio_button.id = 'play_audio_button'
-            function_button_container.appendChild(play_audio_button)
         }
 
         function load_auto_greetings() {
@@ -1693,6 +1685,10 @@ class SettingItemDetailsTextEditor {
 
         function handle_chat_message_addition(added_nodes) {
             for (let added_node of added_nodes) {
+                if (settings.get('groups').get('general').get('loaded_settings').get('notification_sound_setting').get('value')){
+                    let audio = document.getElementById('njoy_notification_audio')
+                    audio.play()
+                }
                 let actual_chat_content = added_node.querySelector('p')
                 let new_chat_content = document.createElement('p')
                 let control_codes = undefined
