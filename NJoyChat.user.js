@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         NJoyChat
 // @namespace    https://www.joyclub.de/chat/login/
-// @version      Alpha-v24
+// @version      Alpha-v25
 // @description  Improves JoyChat with additional utilities.
 // @author       NJoyChat Team
 // @match        https://www.joyclub.de/chat/login/
@@ -637,7 +637,7 @@ class SettingItemDetailsGradientEditor {
         }
 
         let value = setting.get('value')
-        let names = ['Frequenz Rot', 'Frequenz Grün', 'Frequenz Blau', 'Phase Rot', 'Phase Grün', 'Phase Blau', 'Amplitude Rot', 'Amplitude Grün', 'Amplitude Blau', 'DC Rot', 'DC Grün', 'DC Blau']
+        let names = ['DC Rot', 'DC Grün', 'DC Blau','Amplitude Rot', 'Amplitude Grün', 'Amplitude Blau', 'Frequenz Rot', 'Frequenz Grün', 'Frequenz Blau', 'Phase Rot', 'Phase Grün', 'Phase Blau',]
         for (let i = 0; i < value.length - 2; i++) {
             this.create_value_slider(this.div_container.rows[Math.floor(i / 3)], i, '-3.13', '3.13', '0.01', names[i])
         }
@@ -650,8 +650,45 @@ class SettingItemDetailsGradientEditor {
         this.demo_refresh_button.innerText = 'Demo neu laden'
         this.demo_refresh_button.setAttribute('class', " nj-button__content nsecondary nj-button")
         this.demo_refresh_button.addEventListener("click", this.update_demo_div)
-        this.demo_refresh_button.id = 'update_demo_div'
+        this.demo_refresh_button.id = this.div_container.id + '_update_demo_div'
+
+        this.gradient_import_text_box = document.createElement('input')
+        this.gradient_import_text_box.id = this.div_container.id + "_gradient_import"
+        this.gradient_import_button = document.createElement('button')
+        this.gradient_import_button.innerText = 'Import from thi.ng/color'
+        this.gradient_import_button.setAttribute('class', " nj-button__content nsecondary nj-button")
+        this.gradient_import_button.addEventListener('click', this.import_gradient)
+
         this.div_container.appendChild(this.demo_refresh_button)
+
+        this.div_container.appendChild(this.gradient_import_text_box)
+        this.div_container.appendChild(this.gradient_import_button)
+    }
+
+    import_gradient() {
+        console.log(this)
+        console.log(this.parentNode)
+        console.log(this.parentNode.id)
+        let gradient_import = this.parentNode.querySelectorAll('#' + this.parentNode.id + "_gradient_import")[0]
+        let import_value = gradient_import.value.replaceAll('[', '').replaceAll(']', '').split(' ')
+        let currentValue = this.parentNode.setting.get('value')
+        console.log(import_value.length)
+        if (import_value.length === 12) {
+            for (let i = 0; i < import_value.length; i++) {
+                currentValue[i] = parseFloat(import_value[i])
+                let slider_input = this.parentNode.querySelectorAll('#' + this.parentNode.id + "_row_container_row_" + parseInt(i/ 3) + "_slider_input_" + i)[0]
+                let number_input = this.parentNode.querySelectorAll('#' + this.parentNode.id + "_row_container_row_" + parseInt(i / 3) + "_number_input_" + i)[0]
+                console.log('before')
+                console.log(slider_input)
+                console.log(number_input)
+                slider_input.value = parseFloat(import_value[i])
+                number_input.value = parseFloat(import_value[i])
+                console.log('after')
+                console.log(slider_input)
+                console.log(number_input)
+            }
+        }
+        this.parentNode.setting.set('value', currentValue)
     }
 
     update_demo_div() {
@@ -684,6 +721,7 @@ class SettingItemDetailsGradientEditor {
 
         let slider = document.createElement('input')
         slider.type = 'range'
+        slider.id = parent.id + '_slider_input_' + value_index
         slider.min = min
         slider.max = max
         slider.step = step
@@ -696,6 +734,7 @@ class SettingItemDetailsGradientEditor {
         slider.addEventListener('change', this.update_number_input_and_value)
 
         let number_input = document.createElement('input')
+        number_input.id = parent.id + '_number_input_' + value_index
         number_input.min = min
         number_input.max = max
         number_input.step = step
@@ -707,6 +746,9 @@ class SettingItemDetailsGradientEditor {
         // This will get handled by the flexbox container...
         number_input.style.width = '100%'
         number_input.addEventListener('change', this.update_slider_and_value)
+        console.log('lol lmao')
+        console.log(slider.id)
+        console.log(number_input.id)
 
         number_input.slider = slider
         slider.number_input = number_input
@@ -789,18 +831,18 @@ class SettingItemDetailsGradientEditor {
         let words = split.reduce(wrapText, container_div);
         let chars = words.children;
         let total = words.children.length;
-        let freq1 = parseFloat(gradient_settings[0])
-        let freq2 = parseFloat(gradient_settings[1])
-        let freq3 = parseFloat(gradient_settings[2])
-        let phase1 = parseFloat(gradient_settings[3])
-        let phase2 = parseFloat(gradient_settings[4])
-        let phase3 = parseFloat(gradient_settings[5])
-        let amp1 = parseFloat(gradient_settings[6])
-        let amp2 = parseFloat(gradient_settings[7])
-        let amp3 = parseFloat(gradient_settings[8])
-        let dc1 = parseFloat(gradient_settings[9])
-        let dc2 = parseFloat(gradient_settings[10])
-        let dc3 = parseFloat(gradient_settings[11])
+        let dc_offset1 = parseFloat(gradient_settings[0])
+        let dc_offset2 = parseFloat(gradient_settings[1])
+        let dc_offset3 = parseFloat(gradient_settings[2])
+        let amp1 = parseFloat(gradient_settings[3])
+        let amp2 = parseFloat(gradient_settings[4])
+        let amp3 = parseFloat(gradient_settings[5])
+        let freq1 = parseFloat(gradient_settings[6])
+        let freq2 = parseFloat(gradient_settings[7])
+        let freq3 = parseFloat(gradient_settings[8])
+        let phase1 = parseFloat(gradient_settings[9])
+        let phase2 = parseFloat(gradient_settings[10])
+        let phase3 = parseFloat(gradient_settings[11])
         let repetition = parseFloat(gradient_settings[12])
         let gradient_speed = parseFloat(gradient_settings[13])
         container_div.t1 = gsap.timeline({repeat: -1, yoyo: true})
@@ -824,7 +866,7 @@ class SettingItemDetailsGradientEditor {
                             if (active_sinebow.has(index)) {
                                 chars[i].style.color = active_sinebow.get(index);
                             } else {
-                                let computed_sinebow = sinebow(freq1, freq2, freq3, phase1, phase2, phase3, amp1, amp2, amp3, dc1, dc2, dc3, index)
+                                let computed_sinebow = sinebow(dc_offset1, dc_offset2, dc_offset3, amp1, amp2, amp3, freq1, freq2, freq3, phase1, phase2, phase3, index)
                                 active_sinebow.set(index, computed_sinebow)
                                 chars[i].style.color = computed_sinebow
                             }
@@ -841,17 +883,18 @@ class SettingItemDetailsGradientEditor {
 function wrapText(parent, letter, i) {
     let span = document.createElement("span");
     span.textContent = letter;
+    // TODO: Check why we just pass default parameters to this???
     span.style.color = sinebow(1, 1, 1, 0, 2, 4, i + 25);
     parent.appendChild(span);
     return parent;
 }
 
-function sinebow(freq1, freq2, freq3, phase1, phase2, phase3, amp1, amp2, amp3, dc1, dc2, dc3, i) {
+function sinebow(dc_offset1, dc_offset2, dc_offset3, amp1, amp2, amp3, freq1, freq2, freq3, phase1, phase2, phase3, i) {
     let width = 127;
     let center = 128;
-    let r = Math.sin(Math.cos((freq1 * i + phase1)) * amp1 + dc1) * width + center;
-    let g = Math.sin(Math.cos((freq2 * i + phase2)) * amp2 + dc2) * width + center;
-    let b = Math.sin(Math.cos((freq3 * i + phase3)) * amp3 + dc3) * width + center;
+    let r = Math.sin(Math.cos((dc_offset1 * i + amp1)) * amp1 + phase1) * width + center;
+    let g = Math.sin(Math.cos((dc_offset2 * i + amp2)) * amp2 + phase2) * width + center;
+    let b = Math.sin(Math.cos((dc_offset3 * i + amp3)) * amp3 + phase3) * width + center;
     return `rgb(${r >> 0},${g >> 0},${b >> 0})`;
 }
 
@@ -1075,6 +1118,227 @@ class SettingItemDetailsTextEditor {
         this.parentNode.set_editor_fields(text_macro, this.parentNode.id + '_macro_editor_container')
     }
 
+}
+
+class SettingItemDetailsUserListEditor {
+
+    constructor(setting, parent) {
+        this.div_container = create_settings_container_div(setting)
+        this.div_container.style.display = 'flex'
+        this.div_container.style.flexDirection = 'column'
+        this.div_container.style.flex = '1'
+        this.div_container.setAttribute('id', 'setting_item_detail_user_list_editor_container_' + setting.get('name'))
+
+        let setting_details = document.createElement('p')
+        setting_details.textContent = setting.get('display_name') + ':'
+        setting_details.style.float = 'left'
+        this.div_container.appendChild(setting_details)
+
+        let user_name_choice = parent.querySelector('#setting_item_detail_multi_choice_user_names_container_' + setting.get('name') + '_user_name_choice')
+        if (user_name_choice !== null) {
+            this.user_name_choice = user_name_choice
+            console.log(this.user_name_choice)
+            this.user_name_choice.button.addEventListener('click', this.add_user_to_list)
+            console.log(this.user_name_choice.button)
+            this.div_container.appendChild(this.user_name_choice)
+        }
+
+        let macros = setting.get('value')
+        let loaded_macros = []
+        for (let macro of macros) {
+            loaded_macros.push(TextMacro.fromJSON(JSON.parse(macro)))
+        }
+
+        this.select = document.createElement('select')
+
+        if (loaded_macros.length === 0) {
+            let new_macro_option = document.createElement('option')
+            new_macro_option.textContent = ''
+            new_macro_option.value_index = -2
+            this.select.appendChild(new_macro_option)
+        } else {
+            for (let i = 0; i < loaded_macros.length; i++) {
+                let possible_option_value = document.createElement('option')
+                possible_option_value.textContent = loaded_macros[i].get('display_name')
+                possible_option_value.value_index = i
+                this.select.appendChild(possible_option_value)
+            }
+        }
+
+        let new_macro_option = document.createElement('option')
+        new_macro_option.textContent = 'Create New Macro'
+        new_macro_option.value_index = -1
+        this.select.appendChild(new_macro_option)
+
+        this.select.addEventListener('change', this.toggle_setting)
+        this.select.style.float = 'right'
+        this.div_container.select = this.select
+        // Pass function references to child elements in an insane way because javascript chose violence.
+        this.div_container.set_editor_fields = this.set_editor_fields
+        this.div_container.clear_editor_fields = this.clear_editor_fields
+        this.div_container.appendChild(this.select)
+
+        this.delete_macro_button = document.createElement('button')
+        this.delete_macro_button.textContent = 'Delete Macro'
+        this.delete_macro_button.setAttribute('class', " nj-button__content nsecondary nj-button")
+        this.delete_macro_button.addEventListener('click', this.delete_macro)
+        this.div_container.appendChild(this.delete_macro_button)
+
+        this.div_container.appendChild(this.create_macro_editor())
+    }
+
+    create_new_macro_for_user_name() {
+        console.log(this)
+        console.log(this.parentNode)
+        let setting_container = this.parentNode.parentNode;
+        console.log(setting_container)
+        let user_name_select = setting_container.select;
+        console.log(user_name_select)
+        let current_value = setting_container.setting.get('value')
+        console.log(current_value)
+        let text_macro
+        if (current_value.length === 0) {
+            user_name_select.removeChild(user_name_select.firstChild)
+        }
+        let possible_user_names_select = this.parentNode.select;
+        text_macro = new TextMacro(current_value.length + 1, possible_user_names_select.value, 'Insert your macro text here.')
+        current_value.push(JSON.stringify(text_macro))
+        setting_container.setting.set('value', current_value)
+        let possible_option_value = document.createElement('option')
+        possible_option_value.textContent = text_macro.get('display_name')
+        possible_option_value.value_index = current_value.length - 1
+        user_name_select.lastChild.before(possible_option_value)
+        user_name_select.selectedOptions[0].selected = false
+        possible_option_value.selected = true
+        setting_container.set_editor_fields(text_macro, setting_container.id + '_macro_editor_container')
+    }
+
+    create_macro_editor() {
+        let macro_editor_container = document.createElement('div')
+        macro_editor_container.id = this.div_container.id + '_macro_editor_container'
+        macro_editor_container.style.display = 'flex'
+        macro_editor_container.style.flex = 1
+        macro_editor_container.style.flexDirection = 'column'
+
+        let macro_id_editor = document.createElement('input')
+        macro_id_editor.id = macro_editor_container.id + '_id_editor'
+        macro_id_editor.macro_field = 'macro_id'
+        macro_id_editor.style.display = 'flex'
+        macro_id_editor.addEventListener('change', this.update_macro_field)
+        macro_editor_container.appendChild(this.create_label_input_container("Macro ID", macro_id_editor))
+
+        let macro_name_editor = document.createElement('input')
+        macro_name_editor.id = macro_editor_container.id + '_name_editor'
+        macro_name_editor.macro_field = 'name'
+        macro_name_editor.style.display = 'flex'
+        macro_name_editor.addEventListener('change', this.update_macro_field)
+        macro_editor_container.appendChild(this.create_label_input_container('Macro Name', macro_name_editor))
+
+        let macro_display_name_editor = document.createElement('input')
+        macro_display_name_editor.id = macro_editor_container.id + '_display_name_editor'
+        macro_display_name_editor.macro_field = 'display_name'
+        macro_display_name_editor.style.display = 'flex'
+        macro_display_name_editor.addEventListener('change', this.update_macro_field)
+        macro_editor_container.appendChild(this.create_label_input_container('Macro Display Name', macro_display_name_editor))
+
+        let macro_text_editor = document.createElement('input')
+        macro_text_editor.id = macro_editor_container.id + '_macro_text_editor'
+        macro_text_editor.macro_field = 'macro_text'
+        macro_text_editor.style.display = 'flex'
+        macro_text_editor.addEventListener('change', this.update_macro_field)
+        macro_editor_container.appendChild(this.create_label_input_container('Macro Text Editor', macro_text_editor))
+
+        return macro_editor_container
+    }
+
+    create_label_input_container(label_name, input) {
+        let label_input_container = document.createElement('div')
+        label_input_container.style.display = 'flex'
+        label_input_container.style.flex = '1'
+        label_input_container.style.flexDirection = 'row'
+        let label = document.createElement('label')
+        label.setAttribute('for', input.id)
+        label.innerText = label_name
+        label.style.display = 'flex'
+        label.style.flex = '1'
+        label_input_container.appendChild(label)
+        label_input_container.appendChild(input)
+        return label_input_container
+    }
+
+    update_macro_field() {
+        let parentNode = this.parentNode.parentNode.parentNode;
+        let current_value = parentNode.setting.get('value')
+        let macro_to_change = TextMacro.fromJSON(JSON.parse(current_value[parentNode.select.selectedOptions[0].value_index]))
+        macro_to_change.set(this.macro_field, this.value)
+        current_value[parentNode.select.selectedOptions[0].value_index] = JSON.stringify(macro_to_change)
+        parentNode.setting.set('value', current_value)
+    }
+
+    set_editor_fields(macro, container_id) {
+        let macro_editor_container = document.getElementById(container_id)
+        for (let child of macro_editor_container.childNodes) {
+            child.childNodes[1].value = macro.get(child.childNodes[1].macro_field)
+        }
+    }
+
+    clear_editor_fields(container_id) {
+        let macro_editor_container = document.getElementById(container_id)
+        for (let child of macro_editor_container.childNodes) {
+            child.childNodes[1].value = ''
+        }
+    }
+
+    delete_macro() {
+        let current_value = this.parentNode.setting.get('value')
+        let select = this.parentNode.select;
+        let current_value_index = select.selectedOptions[0].value_index
+        if (current_value_index !== -2 && current_value_index !== -1) { // Don't delete the placeholder node. This is handled by create new macro automatically.
+            current_value.splice(current_value_index, 1)
+            if (current_value.length === 0) { // Create placeholder node so create new macro can fire 'on change'
+                let new_macro_option = document.createElement('option')
+                new_macro_option.textContent = ''
+                new_macro_option.value_index = -2
+                select.firstChild.before(new_macro_option)
+                this.parentNode.clear_editor_fields(this.parentNode.id + '_macro_editor_container')
+            } else {
+                this.parentNode.set_editor_fields(TextMacro.fromJSON(JSON.parse(current_value[0])), this.parentNode.id + '_macro_editor_container')
+            }
+            select.selectedOptions[0].remove()
+            select.firstChild.selected = true
+            let new_numbering = 0
+            for (let child of select.children) {
+                if (child.value_index !== -1 && child.value_index !== -2) {
+                    child.value_index = new_numbering
+                    new_numbering += 1
+                }
+            }
+            this.parentNode.setting.set('value', current_value)
+        }
+    }
+
+    toggle_setting() {
+        let current_value = this.parentNode.setting.get('value')
+        let value_index = this.selectedOptions[0].value_index
+        let text_macro
+        if (value_index === -1) {
+            if (current_value.length === 0) {
+                this.removeChild(this.firstChild)
+            }
+            text_macro = new TextMacro(current_value.length + 1, 'New Macro #' + (current_value.length + 1), 'Insert your macro text here.')
+            current_value.push(JSON.stringify(text_macro))
+            this.parentNode.setting.set('value', current_value)
+            let possible_option_value = document.createElement('option')
+            possible_option_value.textContent = text_macro.get('display_name')
+            possible_option_value.value_index = current_value.length - 1
+            this.lastChild.before(possible_option_value)
+            this.selectedOptions[0].selected = false
+            possible_option_value.selected = true
+        } else {
+            text_macro = TextMacro.fromJSON(JSON.parse(current_value[value_index]))
+        }
+        this.parentNode.set_editor_fields(text_macro, this.parentNode.id + '_macro_editor_container')
+    }
 
 }
 
@@ -1320,6 +1584,16 @@ function onVisible(element, callback) {
 
         function create_default_settings() {
             let settings_collection = new SettingsCollection(new Map())
+
+            settings_collection.add_group(create_default_general_settings())
+            settings_collection.add_group(create_default_appearance_group_settings())
+            settings_collection.add_group(create_default_macro_settings())
+            settings_collection.add_group(create_default_auto_greet_settings())
+
+            return settings_collection
+        }
+
+        function create_default_general_settings(){
             let general_settings_group = new SettingsGroup('general', 'Allgemein', undefined)
             let chat_setting_header = new Setting('chat_setting_header', 'Chat Einstellungen', 'section_header', general_settings_group.get('name'), 'Chat Einstellungen', ['Chat Einstellungen'])
             general_settings_group.add_setting(chat_setting_header)
@@ -1327,24 +1601,18 @@ function onVisible(element, callback) {
             general_settings_group.add_setting(notification_sound_setting)
             let scrollback_buffer_setting = new Setting('scrollback_buffer', 'Gleichzeitig angezeigte Nachrichten', 'string', general_settings_group.get('name'), '50', ['50', '100', '150', 'Infinite'])
             general_settings_group.add_setting(scrollback_buffer_setting)
-            let appearance_settings_group = create_default_appearance_group_settings()
+
+            return general_settings_group
+        }
+
+        function create_default_macro_settings(){
             let macro_settings_group = new SettingsGroup('macros', 'Macros', undefined)
             let macro_editor_header = new Setting('macro_editor_header', 'Macro Editor', 'section_header', macro_settings_group.get('name'), 'Macro Editor', ['Macro Editor'])
             macro_settings_group.add_setting(macro_editor_header)
             let macro_editor_setting = new Setting('macro_editor_setting', 'Macro Editor', 'text_editor_macro', macro_settings_group.get('name'), [], [])
             macro_settings_group.add_setting(macro_editor_setting)
-            let auto_greet_settings_group = new SettingsGroup('auto_greet', 'Auto-Begrüßung', undefined)
-            let auto_greet_editor_header = new Setting('auto_greet_editor_header', 'Auto-Begrüßungs Editor', 'section_header', auto_greet_settings_group.get('name'), 'Auto-Begrüßungs Editor', ['Auto-Begrüßungs Editor'])
-            auto_greet_settings_group.add_setting(auto_greet_editor_header)
-            let auto_greet_user_name_choice = new Setting('auto_greet_editor_setting_user_name_choice', 'Users in channel', 'multi_choice_user_names', auto_greet_settings_group.get('name'), 'Users in channel', ['Users in channel'])
-            auto_greet_settings_group.add_setting(auto_greet_user_name_choice)
-            let auto_greet_editor_setting = new Setting('auto_greet_editor_setting', 'Auto-Begrüßungs Editor', 'text_editor_macro', auto_greet_settings_group.get('name'), [], [])
-            auto_greet_settings_group.add_setting(auto_greet_editor_setting)
-            settings_collection.add_group(general_settings_group)
-            settings_collection.add_group(appearance_settings_group)
-            settings_collection.add_group(macro_settings_group)
-            settings_collection.add_group(auto_greet_settings_group)
-            return settings_collection
+
+            return macro_settings_group
         }
 
         function create_default_appearance_group_settings() {
@@ -1395,6 +1663,18 @@ function onVisible(element, callback) {
             appearance_settings_group.add_setting(custom_img_disable_externally_setting)
 
             return appearance_settings_group
+        }
+
+        function create_default_auto_greet_settings(){
+            let auto_greet_settings_group = new SettingsGroup('auto_greet', 'Auto-Begrüßung', undefined)
+            let auto_greet_editor_header = new Setting('auto_greet_editor_header', 'Auto-Begrüßungs Editor', 'section_header', auto_greet_settings_group.get('name'), 'Auto-Begrüßungs Editor', ['Auto-Begrüßungs Editor'])
+            auto_greet_settings_group.add_setting(auto_greet_editor_header)
+            let auto_greet_user_name_choice = new Setting('auto_greet_editor_setting_user_name_choice', 'Users in channel', 'multi_choice_user_names', auto_greet_settings_group.get('name'), 'Users in channel', ['Users in channel'])
+            auto_greet_settings_group.add_setting(auto_greet_user_name_choice)
+            let auto_greet_editor_setting = new Setting('auto_greet_editor_setting', 'Auto-Begrüßungs Editor', 'text_editor_macro', auto_greet_settings_group.get('name'), [], [])
+            auto_greet_settings_group.add_setting(auto_greet_editor_setting)
+
+            return auto_greet_settings_group
         }
 
         function create_settings_window() {
