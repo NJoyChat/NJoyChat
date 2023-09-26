@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         NJoyChat
 // @namespace    https://www.joyclub.de/chat/login/
-// @version      Alpha-v27
+// @version      Alpha-v28
 // @description  Improves JoyChat with additional utilities.
 // @author       NJoyChat Team
 // @match        https://www.joyclub.de/chat/login/
@@ -878,11 +878,10 @@ function wrapText(parent, letter, i) {
 }
 
 function sinebow(dc_offset1, dc_offset2, dc_offset3, amp1, amp2, amp3, freq1, freq2, freq3, phase1, phase2, phase3, i) {
-    let width = 127;
-    let center = 128;
-    let r = Math.sin(Math.cos((freq1 * i + phase1)) * amp1 + dc_offset1) * width + center;
-    let g = Math.sin(Math.cos((freq2 * i + phase2)) * amp2 + dc_offset2) * width + center;
-    let b = Math.sin(Math.cos((freq3 * i + phase3)) * amp3 + dc_offset3) * width + center;
+    let width = 255;
+    let r = Math.sin(Math.cos((freq1 * i + phase1)) * amp1 + dc_offset1) * width;
+    let g = Math.sin(Math.cos((freq2 * i + phase2)) * amp2 + dc_offset2) * width;
+    let b = Math.sin(Math.cos((freq3 * i + phase3)) * amp3 + dc_offset3) * width;
     return `rgb(${r >> 0},${g >> 0},${b >> 0})`;
 }
 
@@ -2728,4 +2727,4 @@ function onVisible(element, callback) {
 
 )
 ();
-    
+
