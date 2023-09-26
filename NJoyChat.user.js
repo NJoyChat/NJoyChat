@@ -1867,9 +1867,16 @@ function onVisible(element, callback) {
             show_settings_button.addEventListener("click", toggle_settings_window)
             show_settings_button.id = 'show_settings_window_button'
 
+            const button = document.createElement("button");
+            button.textContent = "TNDG treten!";
+            button.addEventListener("click", () => alert("Du hast TNDG getreten."));
+            button.setAttribute('class', " nj-button__content nsecondary nj-button")
+            show_settings_container.appendChild(button)
+
             show_settings_container.appendChild(show_settings_button)
             document.querySelector('div.bell_switch').parentNode.appendChild(show_settings_container)
             document.querySelector('div.bell_switch').parentNode.insertBefore(document.querySelector('div.bell_switch'), show_settings_container)
+
             //document.getElementById('njoy_function_buttons_container').appendChild(show_settings_button)
             create_close_and_save_settings_button()
         }
