@@ -1605,6 +1605,15 @@ function onVisible(element, callback) {
             appearance_settings_group.add_setting(maskotchen_setting)
             let maskotchen_enabled_setting = new Setting('maskotchen_enabled', 'Maskotchen An/Aus', 'boolean', appearance_settings_group.get('name'), true, [true, false])
             appearance_settings_group.add_setting(maskotchen_enabled_setting)
+            let maskotchen_mirrored_setting = new Setting('maskotchen_mirrored', 'Maskotchen spiegeln', 'boolean', appearance_settings_group.get('name'), false, [true, false])
+            appearance_settings_group.add_setting(maskotchen_mirrored_setting)
+            // TODO: Make this an actual number with safety checks and stuff
+            let maskotchen_speed_setting = new Setting('maskotchen_speed', 'Maskotchen Geschwindigkeit', 'string', appearance_settings_group.get('name'), '5.0', ['5.0'])
+            appearance_settings_group.add_setting(maskotchen_speed_setting)
+            let maskotchen_left_setting = new Setting('maskotchen_left', 'Maskotchen Linked Rand', 'string', appearance_settings_group.get('name'), '5.0', ['5.0'])
+            appearance_settings_group.add_setting(maskotchen_left_setting)
+            let maskotchen_right_setting = new Setting('maskotchen_right', 'Maskotchen Rechter Rand', 'string', appearance_settings_group.get('name'), '95.0', ['95.0'])
+            appearance_settings_group.add_setting(maskotchen_right_setting)
             let font_header = new Setting('font_header', 'Schrift Einstellungen', 'section_header', appearance_settings_group.get('name'), 'Schrift Einstellungen', ['Schrift Einstellungen'])
             appearance_settings_group.add_setting(font_header)
             let rainbow_font_setting = new Setting('rainbow_message', 'Farbverlauf Schrift An/Aus', 'boolean', appearance_settings_group.get('name'), true, [true, false])
@@ -1744,24 +1753,50 @@ function onVisible(element, callback) {
 
             stitch_img_span.style.left = "5%"
 
-            let t1 = gsap.timeline({repeat: -1})
-                .to(stitch_img_span, {
-                    duration: 5,
-                    xPercent: 95
-                })
-                .set(stitch_img_span, {
-                    scaleX: -1,
-                    xPercent: -5,
-                })
-                .to(stitch_img_span, {
-                    duration: 5,
-                    xPercent: -95
-                })
-                .set(stitch_img_span, {
-                    scaleX: 1,
-                    xPercent: 5,
-                })
-            ;
+            let speed = settings.get('groups').get('appearance').get('loaded_settings').get('maskotchen_speed').get('value')
+            let maskotchen_left = settings.get('groups').get('appearance').get('loaded_settings').get('maskotchen_left').get('value')
+            let maskotchen_right = settings.get('groups').get('appearance').get('loaded_settings').get('maskotchen_right').get('value')
+
+            let t1
+
+            if (settings.get('groups').get('appearance').get('loaded_settings').get('maskotchen_mirrored').get('value')) {
+                t1 = gsap.timeline({repeat: -1})
+                    .set(stitch_img_span, {
+                        scaleX: -1,
+                        xPercent: -maskotchen_right,
+                    })
+                    .to(stitch_img_span, {
+                        duration: speed,
+                        xPercent: -maskotchen_left
+                    })
+                    .set(stitch_img_span, {
+                        scaleX: 1,
+                        xPercent: maskotchen_right,
+                    })
+                    .to(stitch_img_span, {
+                        duration: speed,
+                        xPercent: maskotchen_left
+                    });
+
+            } else {
+                t1 = gsap.timeline({repeat: -1})
+                    .to(stitch_img_span, {
+                        duration: speed,
+                        xPercent: maskotchen_right
+                    })
+                    .set(stitch_img_span, {
+                        scaleX: -1,
+                        xPercent: -maskotchen_left,
+                    })
+                    .to(stitch_img_span, {
+                        duration: speed,
+                        xPercent: -maskotchen_right
+                    })
+                    .set(stitch_img_span, {
+                        scaleX: 1,
+                        xPercent: maskotchen_left,
+                    });
+            }
             t1.play()
 
             stitch_img_span.appendChild(stitch_img)
