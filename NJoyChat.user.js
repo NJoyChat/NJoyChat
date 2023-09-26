@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         NJoyChat
 // @namespace    https://www.joyclub.de/chat/login/
-// @version      Alpha-v25
+// @version      Alpha-v26
 // @description  Improves JoyChat with additional utilities.
 // @author       NJoyChat Team
 // @match        https://www.joyclub.de/chat/login/
@@ -26,6 +26,7 @@
 // Old Settings classes
 
 let precomputed_sinebows = new Map()
+let cache_accesses = new Map()
 
 class TextMacro extends Map {
     constructor(macro_id, name, macro_text) {
@@ -637,9 +638,9 @@ class SettingItemDetailsGradientEditor {
         }
 
         let value = setting.get('value')
-        let names = ['DC Rot', 'DC Grün', 'DC Blau','Amplitude Rot', 'Amplitude Grün', 'Amplitude Blau', 'Frequenz Rot', 'Frequenz Grün', 'Frequenz Blau', 'Phase Rot', 'Phase Grün', 'Phase Blau',]
+        let names = ['DC Rot', 'DC Grün', 'DC Blau', 'Amplitude Rot', 'Amplitude Grün', 'Amplitude Blau', 'Frequenz Rot', 'Frequenz Grün', 'Frequenz Blau', 'Phase Rot', 'Phase Grün', 'Phase Blau',]
         for (let i = 0; i < value.length - 2; i++) {
-            this.create_value_slider(this.div_container.rows[Math.floor(i / 3)], i, '-3.13', '3.13', '0.01', names[i])
+            this.create_value_slider(this.div_container.rows[Math.floor(i / 3)], i, '-3.131', '3.131', '0.001', names[i])
         }
         this.div_container.appendChild(this.create_parentless_value_slider(value.length - 2, '0', '2', '0.0001', 'Gradient Repetition'))
         this.div_container.appendChild(this.create_parentless_value_slider(value.length - 1, '1', '30', '0.01', 'Gradient Speed (Seconds)'))
@@ -666,26 +667,16 @@ class SettingItemDetailsGradientEditor {
     }
 
     import_gradient() {
-        console.log(this)
-        console.log(this.parentNode)
-        console.log(this.parentNode.id)
         let gradient_import = this.parentNode.querySelectorAll('#' + this.parentNode.id + "_gradient_import")[0]
         let import_value = gradient_import.value.replaceAll('[', '').replaceAll(']', '').split(' ')
         let currentValue = this.parentNode.setting.get('value')
-        console.log(import_value.length)
         if (import_value.length === 12) {
             for (let i = 0; i < import_value.length; i++) {
                 currentValue[i] = parseFloat(import_value[i])
-                let slider_input = this.parentNode.querySelectorAll('#' + this.parentNode.id + "_row_container_row_" + parseInt(i/ 3) + "_slider_input_" + i)[0]
+                let slider_input = this.parentNode.querySelectorAll('#' + this.parentNode.id + "_row_container_row_" + parseInt(i / 3) + "_slider_input_" + i)[0]
                 let number_input = this.parentNode.querySelectorAll('#' + this.parentNode.id + "_row_container_row_" + parseInt(i / 3) + "_number_input_" + i)[0]
-                console.log('before')
-                console.log(slider_input)
-                console.log(number_input)
                 slider_input.value = parseFloat(import_value[i])
                 number_input.value = parseFloat(import_value[i])
-                console.log('after')
-                console.log(slider_input)
-                console.log(number_input)
             }
         }
         this.parentNode.setting.set('value', currentValue)
@@ -746,9 +737,6 @@ class SettingItemDetailsGradientEditor {
         // This will get handled by the flexbox container...
         number_input.style.width = '100%'
         number_input.addEventListener('change', this.update_slider_and_value)
-        console.log('lol lmao')
-        console.log(slider.id)
-        console.log(number_input.id)
 
         number_input.slider = slider
         slider.number_input = number_input
@@ -892,9 +880,9 @@ function wrapText(parent, letter, i) {
 function sinebow(dc_offset1, dc_offset2, dc_offset3, amp1, amp2, amp3, freq1, freq2, freq3, phase1, phase2, phase3, i) {
     let width = 127;
     let center = 128;
-    let r = Math.sin(Math.cos((dc_offset1 * i + amp1)) * amp1 + phase1) * width + center;
-    let g = Math.sin(Math.cos((dc_offset2 * i + amp2)) * amp2 + phase2) * width + center;
-    let b = Math.sin(Math.cos((dc_offset3 * i + amp3)) * amp3 + phase3) * width + center;
+    let r = Math.sin(Math.cos((freq1 * i + phase1)) * amp1 + dc_offset1) * width + center;
+    let g = Math.sin(Math.cos((freq2 * i + phase2)) * amp2 + dc_offset2) * width + center;
+    let b = Math.sin(Math.cos((freq3 * i + phase3)) * amp3 + dc_offset3) * width + center;
     return `rgb(${r >> 0},${g >> 0},${b >> 0})`;
 }
 
@@ -915,9 +903,7 @@ class SettingItemDetailsTextEditor {
         let user_name_choice = parent.querySelector('#setting_item_detail_multi_choice_user_names_container_' + setting.get('name') + '_user_name_choice')
         if (user_name_choice !== null) {
             this.user_name_choice = user_name_choice
-            console.log(this.user_name_choice)
             this.user_name_choice.button.addEventListener('click', this.create_new_macro_for_user_name)
-            console.log(this.user_name_choice.button)
             this.div_container.appendChild(this.user_name_choice)
         }
 
@@ -966,14 +952,9 @@ class SettingItemDetailsTextEditor {
     }
 
     create_new_macro_for_user_name() {
-        console.log(this)
-        console.log(this.parentNode)
         let setting_container = this.parentNode.parentNode;
-        console.log(setting_container)
         let user_name_select = setting_container.select;
-        console.log(user_name_select)
         let current_value = setting_container.setting.get('value')
-        console.log(current_value)
         let text_macro
         if (current_value.length === 0) {
             user_name_select.removeChild(user_name_select.firstChild)
@@ -1137,9 +1118,7 @@ class SettingItemDetailsUserListEditor {
         let user_name_choice = parent.querySelector('#setting_item_detail_multi_choice_user_names_container_' + setting.get('name') + '_user_name_choice')
         if (user_name_choice !== null) {
             this.user_name_choice = user_name_choice
-            console.log(this.user_name_choice)
             this.user_name_choice.button.addEventListener('click', this.add_user_to_list)
-            console.log(this.user_name_choice.button)
             this.div_container.appendChild(this.user_name_choice)
         }
 
@@ -1188,14 +1167,9 @@ class SettingItemDetailsUserListEditor {
     }
 
     create_new_macro_for_user_name() {
-        console.log(this)
-        console.log(this.parentNode)
         let setting_container = this.parentNode.parentNode;
-        console.log(setting_container)
         let user_name_select = setting_container.select;
-        console.log(user_name_select)
         let current_value = setting_container.setting.get('value')
-        console.log(current_value)
         let text_macro
         if (current_value.length === 0) {
             user_name_select.removeChild(user_name_select.firstChild)
@@ -1498,6 +1472,13 @@ function onVisible(element, callback) {
         waitForKeyElements(".joychat_output", watch_chat_output_for_change)
         waitForKeyElements(".send", watch_for_send_button_submit)
 
+        function profile_cache_accesses() {
+            setTimeout(function () {
+                console.log(cache_accesses)
+                profile_cache_accesses()
+            }, 5000)
+        }
+
         function start_running() {
             console.log('Test. Ich weiß, was ich tue, und das hier ist in keinster Art und Weise bösartig. Bitte kontaktieren Sie mich, falls meine Aktivitäten zu Problemen führen.')
             let toolbar = document.querySelectorAll('.toolbar')[0]
@@ -1512,6 +1493,7 @@ function onVisible(element, callback) {
                 create_audio_elements()
                 watch_for_textarea_submit()
             }
+            //profile_cache_accesses()
         }
 
         function create_close_and_save_settings_button() {
@@ -1593,7 +1575,7 @@ function onVisible(element, callback) {
             return settings_collection
         }
 
-        function create_default_general_settings(){
+        function create_default_general_settings() {
             let general_settings_group = new SettingsGroup('general', 'Allgemein', undefined)
             let chat_setting_header = new Setting('chat_setting_header', 'Chat Einstellungen', 'section_header', general_settings_group.get('name'), 'Chat Einstellungen', ['Chat Einstellungen'])
             general_settings_group.add_setting(chat_setting_header)
@@ -1605,7 +1587,7 @@ function onVisible(element, callback) {
             return general_settings_group
         }
 
-        function create_default_macro_settings(){
+        function create_default_macro_settings() {
             let macro_settings_group = new SettingsGroup('macros', 'Macros', undefined)
             let macro_editor_header = new Setting('macro_editor_header', 'Macro Editor', 'section_header', macro_settings_group.get('name'), 'Macro Editor', ['Macro Editor'])
             macro_settings_group.add_setting(macro_editor_header)
@@ -1665,7 +1647,7 @@ function onVisible(element, callback) {
             return appearance_settings_group
         }
 
-        function create_default_auto_greet_settings(){
+        function create_default_auto_greet_settings() {
             let auto_greet_settings_group = new SettingsGroup('auto_greet', 'Auto-Begrüßung', undefined)
             let auto_greet_editor_header = new Setting('auto_greet_editor_header', 'Auto-Begrüßungs Editor', 'section_header', auto_greet_settings_group.get('name'), 'Auto-Begrüßungs Editor', ['Auto-Begrüßungs Editor'])
             auto_greet_settings_group.add_setting(auto_greet_editor_header)
@@ -2006,7 +1988,7 @@ function onVisible(element, callback) {
                     removed_users.set(existing_user, users.get(existing_user))
                 }
             }
-            console.log('Existing users:', existing_users, ' New Users:', new_users, ' Removed Users:', removed_users)
+            //console.log('Existing users:', existing_users, ' New Users:', new_users, ' Removed Users:', removed_users)
             for (let existing_user of existing_users.keys()) {
                 users.set(existing_user, existing_users.get(existing_user))
             }
@@ -2176,7 +2158,7 @@ function onVisible(element, callback) {
             }
         }
 
-/////////////////////////////////////////// HANDLERS ///////////////////////////////////////////////////////////////////
+        /////////////////////////////////////////// HANDLERS ///////////////////////////////////////////////////////////////////
 
         function append_before_first_child(child_message_node, parent_message) {
             if (Array.isArray(child_message_node)) {
@@ -2492,7 +2474,7 @@ function onVisible(element, callback) {
         let control_space_separator_character = 8205
 
         function process_control_spaces(message) {
-            console.log(message)
+            //console.log(message)
             while (message.startsWith(' ')) {
                 message = message.slice(1, message.length)
             }
@@ -2507,7 +2489,7 @@ function onVisible(element, callback) {
                 }
                 return [message.split(String.fromCharCode(control_space_start_character))[0], converted_numbers]
             } else {
-                console.log("No control spaces found...")
+                //console.log("No control spaces found...")
                 return [message, []]
             }
         }
@@ -2632,7 +2614,30 @@ function onVisible(element, callback) {
             console.log("Pre submit modifications done.")
         }
 
-// Utility Functions
+        // Utility Functions
+
+        function check_if_gradient_is_cached(text_to_rainbowify, gradient_settings) {
+            let active_sinebow
+            if (precomputed_sinebows.has(gradient_settings.toString())) {
+                active_sinebow = precomputed_sinebows.get(gradient_settings.toString())
+            } else {
+                active_sinebow = new Map()
+                precomputed_sinebows.set(gradient_settings.toString(), active_sinebow)
+                console.log(precomputed_sinebows)
+            }
+            /*if (cache_accesses.has(text_to_rainbowify)) {
+                let access = cache_accesses.get(text_to_rainbowify)
+                if (access.has(gradient_settings.toString())) {
+                    access.set(gradient_settings.toString(), access.get(gradient_settings.toString()) + 1)
+                } else {
+                    access.set(gradient_settings.toString(), 1)
+                }
+            } else {
+                cache_accesses.set(text_to_rainbowify, new Map())
+                cache_accesses.get(text_to_rainbowify).set(gradient_settings.toString(), 1)
+            }*/
+            return active_sinebow
+        }
 
         function make_text_sinebow(text_to_rainbowify, gradient_settings) {
             let container_div = document.createElement('span')
@@ -2664,14 +2669,7 @@ function onVisible(element, callback) {
                     duration: gradient_speed,
                     modifiers: {
                         red: function (x) {
-                            let active_sinebow
-                            if (precomputed_sinebows.has(gradient_settings.toString())) {
-                                active_sinebow = precomputed_sinebows.get(gradient_settings.toString())
-                            } else {
-                                active_sinebow = new Map()
-                                precomputed_sinebows.set(gradient_settings.toString(), active_sinebow)
-                                console.log(precomputed_sinebows)
-                            }
+                            let active_sinebow = check_if_gradient_is_cached(text_to_rainbowify, gradient_settings)
                             for (let i = 0; i < total; i++) {
                                 let index = i + 25 + x * repetition;
                                 index = +index.toFixed(2)
@@ -2695,4 +2693,4 @@ function onVisible(element, callback) {
 
 )
 ();
-
+    
