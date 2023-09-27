@@ -879,9 +879,9 @@ function wrapText(parent, letter, i) {
 
 function sinebow(dc_offset1, dc_offset2, dc_offset3, amp1, amp2, amp3, freq1, freq2, freq3, phase1, phase2, phase3, i) {
     let width = 255;
-    let r = Math.sin(Math.cos((freq1 * i + phase1)) * amp1 + dc_offset1) * width;
-    let g = Math.sin(Math.cos((freq2 * i + phase2)) * amp2 + dc_offset2) * width;
-    let b = Math.sin(Math.cos((freq3 * i + phase3)) * amp3 + dc_offset3) * width;
+    let r = Math.sin(Math.cos((freq1 * i / 10.0 + phase1)) * amp1 + dc_offset1) * width;
+    let g = Math.sin(Math.cos((freq2 * i / 10.0 + phase2)) * amp2 + dc_offset2) * width;
+    let b = Math.sin(Math.cos((freq3 * i / 10.0 + phase3)) * amp3 + dc_offset3) * width;
     return `rgb(${r >> 0},${g >> 0},${b >> 0})`;
 }
 
@@ -1470,6 +1470,7 @@ function onVisible(element, callback) {
         waitForKeyElements("ul.userlist:nth-child(3)", watch_user_list_for_change)
         waitForKeyElements(".joychat_output", watch_chat_output_for_change)
         waitForKeyElements(".send", watch_for_send_button_submit)
+        waitForKeyElements('#j_growl_container > j-growl[variant="error"]', trigger_auto_idle)
 
         function profile_cache_accesses() {
             setTimeout(function () {
@@ -1582,6 +1583,10 @@ function onVisible(element, callback) {
             general_settings_group.add_setting(notification_sound_setting)
             let scrollback_buffer_setting = new Setting('scrollback_buffer', 'Gleichzeitig angezeigte Nachrichten', 'string', general_settings_group.get('name'), '50', ['50', '100', '150', 'Infinite'])
             general_settings_group.add_setting(scrollback_buffer_setting)
+            let auto_idle_enabled = new Setting('auto_idle_enabled', 'Auto-Anti-Idle', 'boolean', general_settings_group.get('name'), false, [true, false])
+            general_settings_group.add_setting(auto_idle_enabled)
+            let auto_idle_text = new Setting('auto_idle_text', 'Auto-Anti-Idle Nachricht', 'string', general_settings_group.get('name'), 'Idle.', ['Idle.'])
+            general_settings_group.add_setting(auto_idle_text)
 
             return general_settings_group
         }
@@ -2106,6 +2111,17 @@ function onVisible(element, callback) {
             }
         }
 
+        function trigger_auto_idle(){
+            if (settings.get('groups').get('general').get('loaded_settings').get('auto_idle_enabled').get('value')) {
+                let auto_idle_text = settings.get('groups').get('general').get('loaded_settings').get('auto_idle_text').get('value')
+                let warning = document.querySelectorAll('#j_growl_container > j-growl[variant="error"]')[0]
+                if (warning.childNodes[0].textContent === '2001 Idle Warnung') {
+                    say_macro(auto_idle_text)
+                    document.querySelectorAll('#j_growl_container > j-growl[variant="error"]')[0].shadowRoot.querySelector('aside > button').click()
+                }
+            }
+        }
+
         function handle_chat_message_addition(added_nodes) {
             for (let added_node of added_nodes) {
                 if (settings.get('groups').get('general').get('loaded_settings').get('notification_sound_setting').get('value')) {
@@ -2609,50 +2625,52 @@ function onVisible(element, callback) {
 
 
         function pre_submit_modifications() {
-            let config_values = []
+            if (document.querySelectorAll('#joychat_input_text')[0].value != '') {
+                let config_values = []
 
-            // Assume we sent an image or an emoji... TODO: Dynamically check this.
-            config_values.push(1)
-            config_values.push(1)
-            config_values.push(1)
-            config_values.push(2)
-            config_values.push(1)
-            config_values.push(1)
-            if (settings.get('groups').get('appearance').get('loaded_settings').get('custom_font_message').get('value')) {
-                convert_editor_to_custom_font()
-            }
-            if (settings.get('groups').get('appearance').get('loaded_settings').get('rainbow_message').get('value')) {
-                config_values.push(3)
-                let encoded_gradient_options = encode_gradient_options(settings.get('groups').get('appearance').get('loaded_settings').get('gradient_editor_message_setting').get('value'))
-                config_values.push(encoded_gradient_options.length)
-                for (let encoded_option of encoded_gradient_options) {
-                    config_values.push(encoded_option)
-                }
-            }
-            if (settings.get('groups').get('appearance').get('loaded_settings').get('username_picture').get('value')) {
-                config_values.push(4)
+                // Assume we sent an image or an emoji... TODO: Dynamically check this.
                 config_values.push(1)
-                config_values.push(emoji_list.indexOf(settings.get('groups').get('appearance').get('loaded_settings').get('username_picture_choice').get('value')))
-            }
-            if (settings.get('groups').get('appearance').get('loaded_settings').get('username_rainbow').get('value')) {
-                config_values.push(5)
-                let encoded_gradient_options = encode_gradient_options(settings.get('groups').get('appearance').get('loaded_settings').get('gradient_editor_username_setting').get('value'))
-                config_values.push(encoded_gradient_options.length)
-                for (let encoded_option of encoded_gradient_options) {
-                    config_values.push(encoded_option)
+                config_values.push(1)
+                config_values.push(1)
+                config_values.push(2)
+                config_values.push(1)
+                config_values.push(1)
+                if (settings.get('groups').get('appearance').get('loaded_settings').get('custom_font_message').get('value')) {
+                    convert_editor_to_custom_font()
                 }
-            }
+                if (settings.get('groups').get('appearance').get('loaded_settings').get('rainbow_message').get('value')) {
+                    config_values.push(3)
+                    let encoded_gradient_options = encode_gradient_options(settings.get('groups').get('appearance').get('loaded_settings').get('gradient_editor_message_setting').get('value'))
+                    config_values.push(encoded_gradient_options.length)
+                    for (let encoded_option of encoded_gradient_options) {
+                        config_values.push(encoded_option)
+                    }
+                }
+                if (settings.get('groups').get('appearance').get('loaded_settings').get('username_picture').get('value')) {
+                    config_values.push(4)
+                    config_values.push(1)
+                    config_values.push(emoji_list.indexOf(settings.get('groups').get('appearance').get('loaded_settings').get('username_picture_choice').get('value')))
+                }
+                if (settings.get('groups').get('appearance').get('loaded_settings').get('username_rainbow').get('value')) {
+                    config_values.push(5)
+                    let encoded_gradient_options = encode_gradient_options(settings.get('groups').get('appearance').get('loaded_settings').get('gradient_editor_username_setting').get('value'))
+                    config_values.push(encoded_gradient_options.length)
+                    for (let encoded_option of encoded_gradient_options) {
+                        config_values.push(encoded_option)
+                    }
+                }
 
-            let control_spaces = convert_number_array_to_control_spaces(config_values)
-            let final_control_space_string = String.fromCharCode(control_space_start_character)
-            for (let control_space of control_spaces) {
-                final_control_space_string += control_space
-                final_control_space_string += String.fromCharCode(control_space_separator_character)
+                let control_spaces = convert_number_array_to_control_spaces(config_values)
+                let final_control_space_string = String.fromCharCode(control_space_start_character)
+                for (let control_space of control_spaces) {
+                    final_control_space_string += control_space
+                    final_control_space_string += String.fromCharCode(control_space_separator_character)
+                }
+                final_control_space_string = final_control_space_string.slice(0, -1)
+                final_control_space_string = ' ' + final_control_space_string
+                document.querySelectorAll('#joychat_input_text')[0].value += final_control_space_string
+                console.log("Pre submit modifications done.")
             }
-            final_control_space_string = final_control_space_string.slice(0, -1)
-            final_control_space_string = ' ' + final_control_space_string
-            document.querySelectorAll('#joychat_input_text')[0].value += final_control_space_string
-            console.log("Pre submit modifications done.")
         }
 
         // Utility Functions
