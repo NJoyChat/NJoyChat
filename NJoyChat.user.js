@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         NJoyChat
 // @namespace    https://www.joyclub.de/chat/login/
-// @version      Alpha-v30
+// @version      Alpha-v31
 // @description  Improves JoyChat with additional utilities.
 // @author       NJoyChat Team
 // @match        https://www.joyclub.de/chat/login/
@@ -833,30 +833,45 @@ class SettingItemDetailsGradientEditor {
         let phase3 = parseFloat(gradient_settings[11])
         let repetition = parseFloat(gradient_settings[12])
         let gradient_speed = parseFloat(gradient_settings[13])
+        let active_sinebow
+        let required_colors = Math.ceil(total / repetition);
+        if (precomputed_sinebows.has(gradient_settings.toString())) {
+            active_sinebow = precomputed_sinebows.get(gradient_settings.toString())
+            if (active_sinebow.length > required_colors) {
+                active_sinebow = new Map()
+                active_sinebow.set('gradient', cosineGradient(required_colors, [dc_offset1, dc_offset2, dc_offset3], [amp1, amp2, amp3], [freq1, freq2, freq3], [phase1, phase2, phase3]))
+                for (let i = 0; i < required_colors + 1; i++) {
+                    active_sinebow.set(i, calculateColorIndices(total, i, active_sinebow.get('gradient'), repetition))
+                }
+
+            }
+        } else {
+            active_sinebow = new Map()
+            active_sinebow.set('gradient', cosineGradient(300, [dc_offset1, dc_offset2, dc_offset3], [amp1, amp2, amp3], [freq1, freq2, freq3], [phase1, phase2, phase3]))
+            let gradient = active_sinebow.get('gradient')
+            for (let i = 0; i < 301; i++) {
+                active_sinebow.set(i, calculateColorIndices(total, i, gradient, repetition))
+            }
+            precomputed_sinebows.set(gradient_settings.toString(), active_sinebow)
+        }
+
         container_div.t1 = gsap.timeline({repeat: -1, yoyo: true})
             .to(words, {
-                red: 255,
+                red: 300,
                 step: 1,
                 duration: gradient_speed,
                 modifiers: {
                     red: function (x) {
-                        let active_sinebow
-                        let required_colors = Math.ceil(total / repetition);
-                        if (precomputed_sinebows.has(gradient_settings.toString())) {
-                            active_sinebow = precomputed_sinebows.get(gradient_settings.toString())
-                            if (active_sinebow.length > required_colors) {
-                                active_sinebow = cosineGradient(required_colors, [dc_offset1, dc_offset2, dc_offset3], [amp1, amp2, amp3], [freq1, freq2, freq3], [phase1, phase2, phase3])
-                            }
+                        let color_indices
+                        if (active_sinebow.has(Math.floor(x))) {
+                            color_indices = active_sinebow.get(Math.floor(x))
                         } else {
-                            active_sinebow = cosineGradient(300, [dc_offset1, dc_offset2, dc_offset3], [amp1, amp2, amp3], [freq1, freq2, freq3], [phase1, phase2, phase3])
-                            precomputed_sinebows.set(gradient_settings.toString(), active_sinebow)
-                            console.log('Generating sinebow with length: ' + total + ' for text: ' + text_to_rainbowify + ' with length: ' + text_to_rainbowify.length)
+                            color_indices = calculateColorIndices(total, Math.floor(x), active_sinebow, repetition)
+                            active_sinebow.set(Math.floor(x), color_indices)
                         }
 
-                        let color_indices = calculateColorIndices(total, x, active_sinebow, repetition)
-                        console.log(color_indices)
                         for (let i = 0; i < total; i++) {
-                            chars[i].style.color = active_sinebow[color_indices[i]];
+                            chars[i].style.color = active_sinebow.get('gradient')[color_indices[i]];
                         }
                         return x;
                     }
@@ -891,7 +906,7 @@ function calculateColorIndices(inputStringLength, x, colorArray, repetitionFacto
     // Calculate color indices for each character in the input string.
     return Array.from({length: inputStringLength}, (_, index) => {
         const colorIndex = calculateColorIndex(x, colorArray, repetitionFactor) + index;
-        if (Math.floor(colorIndex / colorArray.length) % 2 === 0){
+        if (Math.floor(colorIndex / colorArray.length) % 2 === 0) {
             return colorIndex % colorArray.length;
         } else {
             return colorArray.length - (colorIndex % colorArray.length);
@@ -2911,29 +2926,46 @@ function onVisible(element, callback) {
             let repetition = parseFloat(gradient_settings[12])
             let gradient_speed = parseFloat(gradient_settings[13])
             console.log('Gradient Settings decoded:', gradient_settings)
+
+            let active_sinebow
+            let required_colors = Math.ceil(total / repetition);
+            if (precomputed_sinebows.has(gradient_settings.toString())) {
+                active_sinebow = precomputed_sinebows.get(gradient_settings.toString())
+                if (active_sinebow.length > required_colors) {
+                    active_sinebow = new Map()
+                    active_sinebow.set('gradient', cosineGradient(required_colors, [dc_offset1, dc_offset2, dc_offset3], [amp1, amp2, amp3], [freq1, freq2, freq3], [phase1, phase2, phase3]))
+                    for (let i = 0; i < required_colors + 1; i++) {
+                        active_sinebow.set(i, calculateColorIndices(total, i, active_sinebow.get('gradient'), repetition))
+                    }
+
+                }
+            } else {
+                active_sinebow = new Map()
+                active_sinebow.set('gradient', cosineGradient(300, [dc_offset1, dc_offset2, dc_offset3], [amp1, amp2, amp3], [freq1, freq2, freq3], [phase1, phase2, phase3]))
+                let gradient = active_sinebow.get('gradient')
+                for (let i = 0; i < 301; i++) {
+                    active_sinebow.set(i, calculateColorIndices(total, i, gradient, repetition))
+                }
+                precomputed_sinebows.set(gradient_settings.toString(), active_sinebow)
+            }
+
             let t1 = gsap.timeline({repeat: -1, yoyo: true})
                 .to(words, {
-                    red: 255,
+                    red: 300,
                     step: 1,
                     duration: gradient_speed,
                     modifiers: {
                         red: function (x) {
-                            let active_sinebow
-                            let required_colors = Math.ceil(total / repetition);
-                            if (precomputed_sinebows.has(gradient_settings.toString())) {
-                                active_sinebow = precomputed_sinebows.get(gradient_settings.toString())
-                                if (active_sinebow.length > required_colors) {
-                                    active_sinebow = cosineGradient(required_colors, [dc_offset1, dc_offset2, dc_offset3], [amp1, amp2, amp3], [freq1, freq2, freq3], [phase1, phase2, phase3])
-                                }
+                            let color_indices
+                            if (active_sinebow.has(Math.floor(x))) {
+                                color_indices = active_sinebow.get(Math.floor(x))
                             } else {
-                                active_sinebow = cosineGradient(300, [dc_offset1, dc_offset2, dc_offset3], [amp1, amp2, amp3], [freq1, freq2, freq3], [phase1, phase2, phase3])
-                                precomputed_sinebows.set(gradient_settings.toString(), active_sinebow)
-                                console.log('Generating sinebow with length: ' + total + ' for text: ' + text_to_rainbowify + ' with length: ' + text_to_rainbowify.length)
+                                color_indices = calculateColorIndices(total, Math.floor(x), active_sinebow, repetition)
+                                active_sinebow.set(Math.floor(x), color_indices)
                             }
 
-                            let color_indices = calculateColorIndices(total, x, active_sinebow, repetition)
                             for (let i = 0; i < total; i++) {
-                                chars[i].style.color = active_sinebow[color_indices[i]];
+                                chars[i].style.color = active_sinebow.get('gradient')[color_indices[i]];
                             }
                             return x;
                         }
