@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         NJoyChat
 // @namespace    https://www.joyclub.de/chat/login/
-// @version      Alpha-v29
+// @version      Alpha-v30
 // @description  Improves JoyChat with additional utilities.
 // @author       NJoyChat Team
 // @match        https://www.joyclub.de/chat/login/
@@ -642,7 +642,7 @@ class SettingItemDetailsGradientEditor {
         for (let i = 0; i < value.length - 2; i++) {
             this.create_value_slider(this.div_container.rows[Math.floor(i / 3)], i, '-3.131', '3.131', '0.001', names[i])
         }
-        this.div_container.appendChild(this.create_parentless_value_slider(value.length - 2, '0', '2', '0.0001', 'Gradient Repetition'))
+        this.div_container.appendChild(this.create_parentless_value_slider(value.length - 2, '0', '10', '0.0001', 'Gradient Repetition'))
         this.div_container.appendChild(this.create_parentless_value_slider(value.length - 1, '1', '30', '0.01', 'Gradient Speed (Seconds)'))
         let demo_div = this.make_text_sinebow('Das hier ist ein Demo Text der lang genug sein muss, um den Farbverlauf wirklich gut darzustellen.', this.div_container.setting.get('value'))
         demo_div.id = 'demo_div_gradient'
@@ -841,23 +841,22 @@ class SettingItemDetailsGradientEditor {
                 modifiers: {
                     red: function (x) {
                         let active_sinebow
+                        let required_colors = Math.ceil(total / repetition);
                         if (precomputed_sinebows.has(gradient_settings.toString())) {
                             active_sinebow = precomputed_sinebows.get(gradient_settings.toString())
-                        } else {
-                            active_sinebow = new Map()
-                            precomputed_sinebows.set(gradient_settings.toString(), active_sinebow)
-                            console.log(precomputed_sinebows)
-                        }
-                        for (let i = 0; i < total; i++) {
-                            let index = i + 25 + x * repetition;
-                            index = +index.toFixed(2)
-                            if (active_sinebow.has(index)) {
-                                chars[i].style.color = active_sinebow.get(index);
-                            } else {
-                                let computed_sinebow = sinebow(dc_offset1, dc_offset2, dc_offset3, amp1, amp2, amp3, freq1, freq2, freq3, phase1, phase2, phase3, index)
-                                active_sinebow.set(index, computed_sinebow)
-                                chars[i].style.color = computed_sinebow
+                            if (active_sinebow.length > required_colors) {
+                                active_sinebow = cosineGradient(required_colors, [dc_offset1, dc_offset2, dc_offset3], [amp1, amp2, amp3], [freq1, freq2, freq3], [phase1, phase2, phase3])
                             }
+                        } else {
+                            active_sinebow = cosineGradient(300, [dc_offset1, dc_offset2, dc_offset3], [amp1, amp2, amp3], [freq1, freq2, freq3], [phase1, phase2, phase3])
+                            precomputed_sinebows.set(gradient_settings.toString(), active_sinebow)
+                            console.log('Generating sinebow with length: ' + total + ' for text: ' + text_to_rainbowify + ' with length: ' + text_to_rainbowify.length)
+                        }
+
+                        let color_indices = calculateColorIndices(total, x, active_sinebow, repetition)
+                        console.log(color_indices)
+                        for (let i = 0; i < total; i++) {
+                            chars[i].style.color = active_sinebow[color_indices[i]];
                         }
                         return x;
                     }
@@ -877,12 +876,115 @@ function wrapText(parent, letter, i) {
     return parent;
 }
 
+// Function to calculate the color index based on x, the length of the color array, and repetition factor.
+function calculateColorIndex(x, colorArray, repetitionFactor) {
+    // Calculate the total number of colors in the gradient, considering repetition.
+    const totalColors = colorArray.length * repetitionFactor;
+
+    // Ensure x is within the range of colors and calculate the color index.
+    const normalizedX = (x % totalColors + totalColors) % totalColors;
+    return Math.floor(normalizedX);
+}
+
+// Function to apply colors to a string based on x, repetition factor, and offset.
+function calculateColorIndices(inputStringLength, x, colorArray, repetitionFactor) {
+    // Calculate color indices for each character in the input string.
+    return Array.from({length: inputStringLength}, (_, index) => {
+        const colorIndex = calculateColorIndex(x, colorArray, repetitionFactor) + index;
+        if (Math.floor(colorIndex / colorArray.length) % 2 === 0){
+            return colorIndex % colorArray.length;
+        } else {
+            return colorArray.length - (colorIndex % colorArray.length);
+        }
+
+    });
+}
+
 function sinebow(dc_offset1, dc_offset2, dc_offset3, amp1, amp2, amp3, freq1, freq2, freq3, phase1, phase2, phase3, i) {
     let width = 255;
     let r = Math.sin(Math.cos((freq1 * i + phase1)) * amp1 + dc_offset1) * width;
     let g = Math.sin(Math.cos((freq2 * i + phase2)) * amp2 + dc_offset2) * width;
     let b = Math.sin(Math.cos((freq3 * i + phase3)) * amp3 + dc_offset3) * width;
     return `rgb(${r >> 0},${g >> 0},${b >> 0})`;
+}
+
+/**
+ * Calculate an RGBA color using cosine coefficients.
+ * @param {number[]} offset - Offset values.
+ * @param {number[]} amp - Amplitude values.
+ * @param {number[]} fmod - Frequency modulation values.
+ * @param {number[]} phase - Phase values.
+ * @param {number} t - Time parameter.
+ * @returns {string} - The RGBA color string.
+ */
+function cosineGradientColor(offset, amp, fmod, phase, t) {
+    return colRgba(
+        offset.map(function (a, index) {
+            return clamp(a + amp[index] * Math.cos(2 * Math.PI * (fmod[index] * t + phase[index])), 0, 1);
+        })
+    );
+}
+
+/**
+ * Generate a cosine gradient of RGBA colors.
+ * @param {number} n - The number of colors in the gradient.
+ * @param {function} t - The ramping function.
+ * @param {number[]} offset - Offset values.
+ * @param {number[]} amp - Amplitude values.
+ * @param {number[]} fmod - Frequency modulation values.
+ * @param {number[]} phase - Phase values.
+ * @returns {string[]} - An array of RGBA color strings.
+ */
+function cosineGradient(n, offset, amp, fmod, phase) {
+    return normRange(n - 1).map(function (index) {
+        return cosineGradientColor(offset, amp, fmod, phase, mixStar(0, 1, index));
+    });
+}
+
+/**
+ * Create an RGBA color string from an array of RGBA values.
+ * @param {number[]} values - An array of RGBA values in the range [0, 1].
+ * @returns {string} - The RGBA color string.
+ */
+function colRgba(values) {
+    if (values.length !== 3) {
+        throw new Error("RGBA values must contain exactly 4 elements.");
+    }
+
+    const [r, g, b] = values.map(value => Math.round(value * 255));
+    // , ${a / 255}
+    return `rgb(${r}, ${g}, ${b})`;
+}
+
+/**
+ * Clamp a value within a specified range.
+ * @param {number} value - The value to clamp.
+ * @param {number} min - The minimum value of the range.
+ * @param {number} max - The maximum value of the range.
+ * @returns {number} - The clamped value.
+ */
+function clamp(value, min, max) {
+    return Math.min(Math.max(value, min), max);
+}
+
+/**
+ * Generate a normalized range of values from 0 to n - 1.
+ * @param {number} n - The number of values in the range.
+ * @returns {number[]} - An array of normalized values.
+ */
+function normRange(n) {
+    return Array.from({length: n}, (_, i) => i / (n - 1));
+}
+
+/**
+ * Mix two values with a blending factor.
+ * @param {number} a - The first value.
+ * @param {number} b - The second value.
+ * @param {number} t - The blending factor (usually in the range [0, 1]).
+ * @returns {number} - The interpolated value.
+ */
+function mixStar(a, b, t) {
+    return a + (b - a) * t;
 }
 
 class SettingItemDetailsTextEditor {
@@ -1662,12 +1764,30 @@ function onVisible(element, callback) {
 
         function create_default_auto_greet_settings() {
             let auto_greet_settings_group = new SettingsGroup('auto_greet', 'Auto-Begrüßung', undefined)
+
+            // Auto greet for usernames
             let auto_greet_editor_header = new Setting('auto_greet_editor_header', 'Auto-Begrüßungs Editor', 'section_header', auto_greet_settings_group.get('name'), 'Auto-Begrüßungs Editor', ['Auto-Begrüßungs Editor'])
             auto_greet_settings_group.add_setting(auto_greet_editor_header)
             let auto_greet_user_name_choice = new Setting('auto_greet_editor_setting_user_name_choice', 'Users in channel', 'multi_choice_user_names', auto_greet_settings_group.get('name'), 'Users in channel', ['Users in channel'])
             auto_greet_settings_group.add_setting(auto_greet_user_name_choice)
             let auto_greet_editor_setting = new Setting('auto_greet_editor_setting', 'Auto-Begrüßungs Editor', 'text_editor_macro', auto_greet_settings_group.get('name'), [], [])
             auto_greet_settings_group.add_setting(auto_greet_editor_setting)
+
+            // Auto greet for everyone
+            let general_auto_greet_editor_header = new Setting('general_auto_greet_editor_header', 'Allgemeine Auto-Begrüßungen', 'section_header', auto_greet_settings_group.get('name'), 'Allgemeine Auto-Begrüßungen', ['Allgemeine Auto-Begrüßungen'])
+            auto_greet_settings_group.add_setting(general_auto_greet_editor_header)
+            let general_auto_greet_enabled = new Setting('general_auto_greet_enabled', 'Allgemeine Auto-Begrüßung an/aus', 'boolean', auto_greet_settings_group.get('name'), false, [true, false])
+            auto_greet_settings_group.add_setting(general_auto_greet_enabled)
+            let general_auto_greet_message = new Setting('general_auto_greet_message', 'Allgemeine Auto-Begrüßungsnachricht', 'string', auto_greet_settings_group.get('name'), 'Hallo %last_join%.', ['Hallo %last_join%.'])
+            auto_greet_settings_group.add_setting(general_auto_greet_message)
+
+            // Auto join message
+            let general_auto_join_editor_header = new Setting('general_auto_join_editor_header', 'Auto-Join Nachricht', 'section_header', auto_greet_settings_group.get('name'), 'Allgemeine Auto-Begrüßungen', ['Allgemeine Auto-Begrüßungen'])
+            auto_greet_settings_group.add_setting(general_auto_join_editor_header)
+            let general_auto_join_enabled = new Setting('general_auto_join_enabled', 'Auto-Join Nachricht an/aus', 'boolean', auto_greet_settings_group.get('name'), false, [true, false])
+            auto_greet_settings_group.add_setting(general_auto_join_enabled)
+            let general_auto_join_message = new Setting('general_auto_join_message', 'Auto-Join Nachricht', 'string', auto_greet_settings_group.get('name'), 'Hallo zusammen.', ['Hallo zusammen.'])
+            auto_greet_settings_group.add_setting(general_auto_join_message)
 
             return auto_greet_settings_group
         }
@@ -2087,21 +2207,35 @@ function onVisible(element, callback) {
                         m.forEach(record => record.addedNodes.length & addedNodes.push(...record.addedNodes))
                         m.forEach(record => record.removedNodes.length & removedNodes.push(...record.removedNodes))
                         let truly_new = []
+                        let truly_new_joins = []
                         for (let added_node of addedNodes) {
-                            if (added_node.tagName === 'DIV' && !added_node.classList.contains('njoy_emoji_chat')) {
+                            if (added_node.tagName === 'DIV' && !added_node.classList.contains('njoy_emoji_chat') && !added_node.classList.contains('join_part') && !added_node.classList.contains('type-join')) {
                                 truly_new.push(added_node)
+                            }
+                            if (added_node.classList.contains('join_part') && added_node.classList.contains('type-join') && !added_node.classList.contains('njoy_emoji_chat')) {
+                                truly_new_joins.push(added_node)
                             }
                         }
                         let truly_removed = []
+                        let truly_removed_joins = []
                         for (let removed_node of removedNodes) {
-                            if (removed_node.tagName === 'DIV' && !removed_node.classList.contains('njoy_emoji_chat')) {
+                            if (removed_node.tagName === 'DIV' && !removed_node.classList.contains('njoy_emoji_chat') && !removed_node.classList.contains('join_part') && !removed_node.classList.contains('type-join')) {
                                 truly_removed.push(removed_node)
+                            }
+                            if (removed_node.classList.contains('join_part') && removed_node.classList.contains('type-join') && !removed_node.classList.contains('njoy_emoji_chat')) {
+                                truly_removed_joins.push(removed_node)
                             }
                         }
 
-                        console.log('Added (chat):', addedNodes, ' Removed (chat): ', removedNodes)
+                        console.log('Added (chat):', truly_new, ' Removed (chat): ', truly_removed)
+                        console.log('Added (joins):', truly_new_joins, ' Removed (joins): ', truly_removed_joins)
+
                         handle_chat_message_addition(truly_new)
                         handle_chat_message_removal(truly_removed);
+
+                        handle_chat_join_addition(truly_new_joins)
+                        handle_chat_join_removal(truly_removed_joins)
+
                         if (m[0].target.children.length >= SCROLLBACK_BUFFER) {
                             m[0].target.removeChild(m[0].target.firstChild)
                         }
@@ -2111,7 +2245,7 @@ function onVisible(element, callback) {
             }
         }
 
-        function trigger_auto_idle(){
+        function trigger_auto_idle() {
             if (settings.get('groups').get('general').get('loaded_settings').get('auto_idle_enabled').get('value')) {
                 let auto_idle_text = settings.get('groups').get('general').get('loaded_settings').get('auto_idle_text').get('value')
                 let warning = document.querySelectorAll('#j_growl_container > j-growl[variant="error"]')[0]
@@ -2213,6 +2347,65 @@ function onVisible(element, callback) {
                 }
                 actual_chat_content.replaceWith(new_chat_content)
             }
+        }
+
+        function handle_chat_message_removal(removedNodes) {
+            console.log('lol lmao', removedNodes)
+        }
+
+        function handle_chat_join_addition(added_nodes) {
+            for (let added_node of added_nodes) {
+                if (settings.get('groups').get('general').get('loaded_settings').get('notification_sound_setting').get('value')) {
+                    if (document.hidden || added_node.hidden) { // Non active chat tabs aren't really hidden.
+                        let audio = document.getElementById('njoy_notification_audio')
+                        audio.play()
+                    }
+                }
+                let actual_chat_content = added_node.querySelector('p')
+                let new_chat_content = document.createElement('p')
+
+                let lucky_punch = process_control_spaces(actual_chat_content.childNodes[actual_chat_content.childNodes.length - 1].nodeValue)
+
+                // found control spaces on first try.
+                actual_chat_content.childNodes[actual_chat_content.childNodes.length - 1].nodeValue = lucky_punch[0]
+
+                let control_code_map = new Map()
+                control_code_map.set(1, chat_message_njoy_emoji_handler)
+                control_code_map.set(2, chat_message_njoy_image_handler)
+                control_code_map.set(3, text_rainbow_message_control_code_handler)
+                control_code_map.set(4, chat_message_header_username_icon_control_code_handler)
+                control_code_map.set(5, chat_message_header_rainbow_user_name_control_code_handler)
+
+                for (let i = actual_chat_content.childNodes.length - 1; i >= 0; i--) {
+                    let message = [actual_chat_content.childNodes[i]]
+
+                    for (let control_code in individual_control_codes) {
+                        //console.log('checking control code ', individual_control_codes[control_code][0], ' Map has control code: ', control_code_map.has(individual_control_codes[control_code][0]))
+                        if (control_code_map.has(individual_control_codes[control_code][0])) {
+                            if (Array.isArray(message)) {
+                                //console.log('Invoking child handlers...')
+                                message = invoke_handler_for_children(message, individual_control_codes[control_code].slice(2, individual_control_codes[control_code].length), control_code_map.get(individual_control_codes[control_code][0]))
+                            } else {
+                                message = control_code_map.get(individual_control_codes[control_code][0])(message, individual_control_codes[control_code].slice(2, individual_control_codes[control_code].length))
+                            }
+                        }
+                    }
+
+                    if (Array.isArray(message)) {
+                        append_before_first_child(message, new_chat_content)
+                    } else {
+                        //console.log('Straight appending message (should not happen)', message)
+                        new_chat_content.appendChild(message)
+                        new_chat_content.insertBefore(message, new_chat_content.firstChild)
+                    }
+                }
+
+                actual_chat_content.replaceWith(new_chat_content)
+            }
+        }
+
+        function handle_chat_join_removal(removedNodes) {
+            console.log('lol lmao', removedNodes)
         }
 
         /////////////////////////////////////////// HANDLERS ///////////////////////////////////////////////////////////////////
@@ -2466,9 +2659,6 @@ function onVisible(element, callback) {
             }
         }
 
-        function handle_chat_message_removal(removedNodes) {
-            console.log('lol lmao', removedNodes)
-        }
 
         function parse_gradient_options(options) {
             let all_numbers = []
@@ -2706,20 +2896,20 @@ function onVisible(element, callback) {
             let words = split.reduce(wrapText, container_div);
             let chars = words.children;
             let total = words.children.length;
-            let freq1 = gradient_settings[0]
-            let freq2 = gradient_settings[1]
-            let freq3 = gradient_settings[2]
-            let phase1 = gradient_settings[3]
-            let phase2 = gradient_settings[4]
-            let phase3 = gradient_settings[5]
-            let amp1 = gradient_settings[6]
-            let amp2 = gradient_settings[7]
-            let amp3 = gradient_settings[8]
-            let dc1 = gradient_settings[9]
-            let dc2 = gradient_settings[10]
-            let dc3 = gradient_settings[11]
-            let repetition = gradient_settings[12]
-            let gradient_speed = gradient_settings[13]
+            let dc_offset1 = parseFloat(gradient_settings[0])
+            let dc_offset2 = parseFloat(gradient_settings[1])
+            let dc_offset3 = parseFloat(gradient_settings[2])
+            let amp1 = parseFloat(gradient_settings[3])
+            let amp2 = parseFloat(gradient_settings[4])
+            let amp3 = parseFloat(gradient_settings[5])
+            let freq1 = parseFloat(gradient_settings[6])
+            let freq2 = parseFloat(gradient_settings[7])
+            let freq3 = parseFloat(gradient_settings[8])
+            let phase1 = parseFloat(gradient_settings[9])
+            let phase2 = parseFloat(gradient_settings[10])
+            let phase3 = parseFloat(gradient_settings[11])
+            let repetition = parseFloat(gradient_settings[12])
+            let gradient_speed = parseFloat(gradient_settings[13])
             console.log('Gradient Settings decoded:', gradient_settings)
             let t1 = gsap.timeline({repeat: -1, yoyo: true})
                 .to(words, {
@@ -2728,17 +2918,22 @@ function onVisible(element, callback) {
                     duration: gradient_speed,
                     modifiers: {
                         red: function (x) {
-                            let active_sinebow = check_if_gradient_is_cached(text_to_rainbowify, gradient_settings)
-                            for (let i = 0; i < total; i++) {
-                                let index = i + 25 + x * repetition;
-                                index = +index.toFixed(2)
-                                if (active_sinebow.has(index)) {
-                                    chars[i].style.color = active_sinebow.get(index);
-                                } else {
-                                    let computed_sinebow = sinebow(freq1, freq2, freq3, phase1, phase2, phase3, amp1, amp2, amp3, dc1, dc2, dc3, index)
-                                    active_sinebow.set(index, computed_sinebow)
-                                    chars[i].style.color = computed_sinebow
+                            let active_sinebow
+                            let required_colors = Math.ceil(total / repetition);
+                            if (precomputed_sinebows.has(gradient_settings.toString())) {
+                                active_sinebow = precomputed_sinebows.get(gradient_settings.toString())
+                                if (active_sinebow.length > required_colors) {
+                                    active_sinebow = cosineGradient(required_colors, [dc_offset1, dc_offset2, dc_offset3], [amp1, amp2, amp3], [freq1, freq2, freq3], [phase1, phase2, phase3])
                                 }
+                            } else {
+                                active_sinebow = cosineGradient(300, [dc_offset1, dc_offset2, dc_offset3], [amp1, amp2, amp3], [freq1, freq2, freq3], [phase1, phase2, phase3])
+                                precomputed_sinebows.set(gradient_settings.toString(), active_sinebow)
+                                console.log('Generating sinebow with length: ' + total + ' for text: ' + text_to_rainbowify + ' with length: ' + text_to_rainbowify.length)
+                            }
+
+                            let color_indices = calculateColorIndices(total, x, active_sinebow, repetition)
+                            for (let i = 0; i < total; i++) {
+                                chars[i].style.color = active_sinebow[color_indices[i]];
                             }
                             return x;
                         }
