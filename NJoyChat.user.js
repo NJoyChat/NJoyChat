@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         NJoyChat
 // @namespace    https://www.joyclub.de/chat/login/
-// @version      Alpha-v31
+// @version      Alpha-v32
 // @description  Improves JoyChat with additional utilities.
 // @author       NJoyChat Team
 // @match        https://www.joyclub.de/chat/login/
@@ -1688,6 +1688,7 @@ function onVisible(element, callback) {
             settings_collection.add_group(create_default_appearance_group_settings())
             settings_collection.add_group(create_default_macro_settings())
             settings_collection.add_group(create_default_auto_greet_settings())
+            settings_collection.add_group(create_default_ignore_settings())
 
             return settings_collection
         }
@@ -1805,6 +1806,21 @@ function onVisible(element, callback) {
             auto_greet_settings_group.add_setting(general_auto_join_message)
 
             return auto_greet_settings_group
+        }
+
+        function create_default_ignore_settings() {
+            let ignore_settings_group = new SettingsGroup('ignore', 'Ignore', undefined)
+            let message_ignore_editor_header = new Setting('message_ignore_editor_header', 'Message Ignore Editor', 'section_header', ignore_settings_group.get('name'), 'Ignore Editor', ['Ignore Editor'])
+            ignore_settings_group.add_setting(message_ignore_editor_header)
+            let message_ignore_editor_setting = new Setting('message_ignore_editor_setting', 'Message Ignore Editor', 'text_editor_macro', ignore_settings_group.get('name'), [], [])
+            ignore_settings_group.add_setting(message_ignore_editor_setting)
+            let user_ignore_editor_header = new Setting('user_ignore_editor_header', 'User Ignore Editor', 'section_header', ignore_settings_group.get('name'), 'Ignore Editor', ['Ignore Editor'])
+            ignore_settings_group.add_setting(user_ignore_editor_header)
+            let user_ignore_editor_setting = new Setting('user_ignore_editor_setting', 'User Ignore Editor', 'text_editor_macro', ignore_settings_group.get('name'), [], [])
+            ignore_settings_group.add_setting(user_ignore_editor_setting)
+
+
+            return ignore_settings_group
         }
 
         function create_settings_window() {
@@ -2100,6 +2116,58 @@ function onVisible(element, callback) {
             return font_array.slice(ascii_code * 2, ascii_code * 2 + 2)
         }
 
+        /**
+         * Attach a button to an HTML element to toggle its visibility.
+         *
+         * @param {string} elementId - The ID of the HTML element to attach the button to.
+         * @param {string} hideText - The text to display on the hide button.
+         * @param {string} showText - The text to display on the show button.
+         */
+        function attachToggleButton(targetElement, hideText, showText) {
+            if (!targetElement) {
+                console.error(`Element not found.`);
+                return;
+            }
+
+            while (targetElement.parentElement.tagName !== 'DIV'){
+                targetElement = targetElement.parentElement
+            }
+
+            // Get the original display style of the element
+            const originalDisplayStyle = window.getComputedStyle(targetElement.parentElement).display;
+
+            const messageElement = document.createElement("div");
+            messageElement.style.display = "none";
+            messageElement.innerText = "Something was hidden."
+
+
+            const hideButton = document.createElement("button");
+            hideButton.textContent = hideText;
+            hideButton.addEventListener("click", () => {
+                targetElement.style.display = "none";
+                hideButton.style.display = "none"
+                messageElement.style.display = originalDisplayStyle;
+            });
+
+            const showButton = document.createElement("button");
+            showButton.textContent = showText
+            showButton.addEventListener("click", () => {
+                targetElement.style.display = originalDisplayStyle;
+                hideButton.style.display = originalDisplayStyle
+                messageElement.style.display = "none";
+            });
+
+            messageElement.appendChild(showButton)
+
+            // Append the hide button to the target element's parent
+            targetElement.parentNode.appendChild(hideButton);
+
+            // Append the message element to the target element's parent
+            targetElement.parentNode.appendChild(messageElement);
+
+            targetElement.parentElement.style.display = 'none';
+        }
+
         function watch_user_list_for_change() {
             let observeDOM = (function () {
                 var MutationObserver = window.MutationObserver || window.WebKitMutationObserver;
@@ -2316,6 +2384,8 @@ function onVisible(element, callback) {
                                             new_chat_content.insertBefore(possible_child, new_chat_content.firstChild)
                                         }
                                     } else {
+                                        chat_message_ignore_message_handler(possible_child, null)
+                                        chat_user_ignore_message_handler(possible_child, null)
                                         new_chat_content.appendChild(possible_child)
                                         new_chat_content.insertBefore(possible_child, new_chat_content.firstChild)
                                     }
@@ -2338,6 +2408,14 @@ function onVisible(element, callback) {
                     for (let i = actual_chat_content.childNodes.length - 1; i >= 0; i--) {
                         let message = [actual_chat_content.childNodes[i]]
 
+                        if (Array.isArray(message)) {
+                            invoke_handler_for_children(message, null, chat_message_ignore_message_handler)
+                            invoke_handler_for_children(message, null, chat_user_ignore_message_handler)
+                        } else {
+                            chat_message_ignore_message_handler(message, null)
+                            chat_user_ignore_message_handler(message, null)
+                        }
+
                         for (let control_code in individual_control_codes) {
                             //console.log('checking control code ', individual_control_codes[control_code][0], ' Map has control code: ', control_code_map.has(individual_control_codes[control_code][0]))
                             if (control_code_map.has(individual_control_codes[control_code][0])) {
@@ -2349,6 +2427,7 @@ function onVisible(element, callback) {
                                 }
                             }
                         }
+
 
                         if (Array.isArray(message)) {
                             append_before_first_child(message, new_chat_content)
@@ -2404,6 +2483,12 @@ function onVisible(element, callback) {
                                 message = control_code_map.get(individual_control_codes[control_code][0])(message, individual_control_codes[control_code].slice(2, individual_control_codes[control_code].length))
                             }
                         }
+                    }
+
+                    if (Array.isArray(message)) {
+                        invoke_handler_for_children(message, null, chat_message_ignore_message_handler)
+                    } else {
+                        chat_message_ignore_message_handler(message, null)
                     }
 
                     if (Array.isArray(message)) {
@@ -2510,6 +2595,21 @@ function onVisible(element, callback) {
             }
         }
 
+        function check_string_against_ignore_list(stringToCheck, ignore_list) {
+            console.log('Checking: ' + stringToCheck + " against ignore list: " + ignore_list)
+            for (const macro of ignore_list) {
+                let loaded_macro = TextMacro.fromJSON(JSON.parse(macro))
+                console.log(loaded_macro)
+                const regexPattern = new RegExp(loaded_macro.get('macro_text'));
+                console.log(regexPattern)
+                if (regexPattern.test(stringToCheck)) {
+                    console.log('Matched ' + stringToCheck + " against " + regexPattern)
+                    return true;
+                }
+            }
+            return false;
+        }
+
         function chat_message_header_username_icon_control_code_handler(message, options) {
             //console.log('Message header username icon control handler:', message, options)
             if (message.classList === undefined || !message.classList.contains('user')) {
@@ -2556,6 +2656,34 @@ function onVisible(element, callback) {
                 let rainbow_user_name = make_text_sinebow(message.querySelector('strong').textContent, gradient_settings)
                 message.querySelector('strong').firstChild.replaceWith(rainbow_user_name)
             }
+            return [message]
+        }
+
+        function chat_user_ignore_message_handler(message, options) {
+            console.log('Ignore user handler')
+            console.log(message)
+            if (message.classList === undefined || !message.classList.contains('user')) {
+                return [message]
+            }
+
+            if (check_string_against_ignore_list(message.querySelector('strong').textContent, settings.get('groups').get('ignore').get('loaded_settings').get('user_ignore_editor_setting').get('value'))) {
+                attachToggleButton(message, 'lol', 'lmao')
+            }
+
+            return [message]
+        }
+
+        function chat_message_ignore_message_handler(message, options) {
+            console.log('Ignore handler')
+            console.log(message)
+            if (message.nodeType !== Node.TEXT_NODE) {
+                console.log('Text control handler invoked on non text node. Returning.')
+                return [message]
+            }
+            if (check_string_against_ignore_list(message.nodeValue, settings.get('groups').get('ignore').get('loaded_settings').get('message_ignore_editor_setting').get('value'))) {
+                attachToggleButton(message, 'lol', 'lmao')
+            }
+
             return [message]
         }
 
