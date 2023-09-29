@@ -1810,6 +1810,14 @@ function onVisible(element, callback) {
 
         function create_default_ignore_settings() {
             let ignore_settings_group = new SettingsGroup('ignore', 'Ignore', undefined)
+            let gender_ignore_editor_header = new Setting('gender_ignore_editor_header', 'Geschlecht ignorieren', 'section_header', ignore_settings_group.get('name'), 'Geschlecht ignorieren', ['Ignore Editor'])
+            ignore_settings_group.add_setting(gender_ignore_editor_header)
+            let ignore_pn_men_setting = new Setting('ignore_pn_men_setting', "PN's von Männern ignorieren", 'boolean', ignore_settings_group.get('name'), false, [true, false])
+            ignore_settings_group.add_setting(ignore_pn_men_setting)
+            let ignore_pn_women_setting = new Setting('ignore_pn_women_setting', "PN's von Frauen ignorieren", 'boolean', ignore_settings_group.get('name'), false, [true, false])
+            ignore_settings_group.add_setting(ignore_pn_women_setting)
+            let ignore_pn_couples_setting = new Setting('ignore_pn_couples_setting', "PN's von Paaren ignorieren", 'boolean', ignore_settings_group.get('name'), false, [true, false])
+            ignore_settings_group.add_setting(ignore_pn_couples_setting)
             let message_ignore_editor_header = new Setting('message_ignore_editor_header', 'Message Ignore Editor', 'section_header', ignore_settings_group.get('name'), 'Ignore Editor', ['Ignore Editor'])
             ignore_settings_group.add_setting(message_ignore_editor_header)
             let message_ignore_editor_setting = new Setting('message_ignore_editor_setting', 'Message Ignore Editor', 'text_editor_macro', ignore_settings_group.get('name'), [], [])
@@ -2129,7 +2137,7 @@ function onVisible(element, callback) {
                 return;
             }
 
-            while (targetElement.parentElement.tagName !== 'DIV'){
+            while (targetElement.parentElement.tagName !== 'DIV') {
                 targetElement = targetElement.parentElement
             }
 
@@ -2284,6 +2292,14 @@ function onVisible(element, callback) {
             })()
             console.log(document.querySelectorAll('.joychat_output'))
             for (let joychat_output of document.querySelectorAll('.joychat_output')) {
+
+                let tab_name = joychat_output.previousSibling.lastChild.textContent
+                if (check_string_against_ignore_list(tab_name, settings.get('groups').get('ignore').get('loaded_settings').get('user_ignore_editor_setting').get('value'))) {
+                    close_tab(tab_name)
+                }
+
+                check_if_gender_is_ignored_for_private_message(tab_name)
+
                 if (!observed_chat_outputs.includes(joychat_output)) {
                     observeDOM(joychat_output, function (m) {
                         var addedNodes = [], removedNodes = [];
@@ -2324,6 +2340,68 @@ function onVisible(element, callback) {
                         }
                     });
                     observed_chat_outputs.push(joychat_output)
+                }
+            }
+        }
+
+        function check_if_gender_is_ignored_for_private_message(tab_name) {
+            let all_men = []
+            let all_women = []
+            let all_couples = []
+            let all_users = document.querySelectorAll('#joychat_userlists > ul.userlist > li.channel_user > div.channel_user_info')
+            console.log(all_users)
+            if (all_users.length !== 0) {
+                for (let user of all_users) {
+                    console.log(user)
+                    let gender = user.querySelector('div > j-gender-icon').universalGender
+                    switch (gender) {
+                        case 1:
+                            all_men.push(user)
+                            break
+                        case 2:
+                            all_women.push(user)
+                            break
+                        case 3:
+                            all_couples.push(user)
+                            break
+                    }
+                }
+
+                console.log(all_men)
+                console.log(all_women)
+                console.log(all_couples)
+
+                if (settings.get('groups').get('ignore').get('loaded_settings').get('ignore_pn_men_setting').get('value')) {
+                    for (let man in all_men) {
+                        if (man.querySelector('span.joychat_user_name').textContent === tab_name) {
+                            close_tab(tab_name)
+                        }
+                    }
+                }
+
+                if (settings.get('groups').get('ignore').get('loaded_settings').get('ignore_pn_women_setting').get('value')) {
+                    for (let woman in all_women) {
+                        if (woman.querySelector('span.joychat_user_name').textContent === tab_name) {
+                            close_tab(tab_name)
+                        }
+                    }
+                }
+
+                if (settings.get('groups').get('ignore').get('loaded_settings').get('ignore_pn_couples_setting').get('value')) {
+                    for (let couple in all_couples) {
+                        if (couple.querySelector('span.joychat_user_name').textContent === tab_name) {
+                            close_tab(tab_name)
+                        }
+                    }
+                }
+            }
+        }
+
+        function close_tab(tab_name) {
+            let outer_tabs = document.querySelectorAll('.tabs-outer > li > span.name')
+            for (let outer_tab of outer_tabs) {
+                if (outer_tab.textContent === tab_name) {
+                    outer_tab.nextSibling.click()
                 }
             }
         }
