@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         NJoyChat
 // @namespace    https://www.joyclub.de/chat/login/
-// @version      Alpha-v32
+// @version      Alpha-v33
 // @description  Improves JoyChat with additional utilities.
 // @author       NJoyChat Team
 // @match        https://www.joyclub.de/chat/login/
@@ -1818,14 +1818,18 @@ function onVisible(element, callback) {
             ignore_settings_group.add_setting(ignore_pn_women_setting)
             let ignore_pn_couples_setting = new Setting('ignore_pn_couples_setting', "PN's von Paaren ignorieren", 'boolean', ignore_settings_group.get('name'), false, [true, false])
             ignore_settings_group.add_setting(ignore_pn_couples_setting)
-            let message_ignore_editor_header = new Setting('message_ignore_editor_header', 'Message Ignore Editor', 'section_header', ignore_settings_group.get('name'), 'Ignore Editor', ['Ignore Editor'])
-            ignore_settings_group.add_setting(message_ignore_editor_header)
-            let message_ignore_editor_setting = new Setting('message_ignore_editor_setting', 'Message Ignore Editor', 'text_editor_macro', ignore_settings_group.get('name'), [], [])
-            ignore_settings_group.add_setting(message_ignore_editor_setting)
             let user_ignore_editor_header = new Setting('user_ignore_editor_header', 'User Ignore Editor', 'section_header', ignore_settings_group.get('name'), 'Ignore Editor', ['Ignore Editor'])
             ignore_settings_group.add_setting(user_ignore_editor_header)
             let user_ignore_editor_setting = new Setting('user_ignore_editor_setting', 'User Ignore Editor', 'text_editor_macro', ignore_settings_group.get('name'), [], [])
             ignore_settings_group.add_setting(user_ignore_editor_setting)
+            let message_ignore_editor_header = new Setting('message_ignore_editor_header', 'Message Ignore Editor', 'section_header', ignore_settings_group.get('name'), 'Ignore Editor', ['Ignore Editor'])
+            ignore_settings_group.add_setting(message_ignore_editor_header)
+            let message_ignore_editor_setting = new Setting('message_ignore_editor_setting', 'Message Ignore Editor', 'text_editor_macro', ignore_settings_group.get('name'), [], [])
+            ignore_settings_group.add_setting(message_ignore_editor_setting)
+            let pn_whitelist_editor_header = new Setting('pn_whitelist_editor_header', 'PN Whitelist Editor', 'section_header', ignore_settings_group.get('name'), 'PN Whitelist Editor', ['Ignore Editor'])
+            ignore_settings_group.add_setting(pn_whitelist_editor_header)
+            let pn_whitelist_editor_setting = new Setting('pn_whitelist_editor_setting', 'PN Whitelist Editor', 'text_editor_macro', ignore_settings_group.get('name'), [], [])
+            ignore_settings_group.add_setting(pn_whitelist_editor_setting)
 
 
             return ignore_settings_group
@@ -2296,11 +2300,22 @@ function onVisible(element, callback) {
                 let tab_name = joychat_output.previousSibling.lastChild.textContent
                 if (check_string_against_ignore_list(tab_name, settings.get('groups').get('ignore').get('loaded_settings').get('user_ignore_editor_setting').get('value'))) {
                     close_tab(tab_name)
+                    break
                 }
 
-                check_if_gender_is_ignored_for_private_message(tab_name)
+                if (check_if_gender_is_ignored_for_private_message(tab_name)) {
+                    console.log('Closing tab...')
+                    close_tab(tab_name)
+                    break
+                }
 
                 if (!observed_chat_outputs.includes(joychat_output)) {
+                    if (settings.get('groups').get('auto_greet').get('loaded_settings').get('general_auto_join_enabled').get('value')) {
+                        if (check_if_tab_is_active(tab_name)) {
+                            say_macro(settings.get('groups').get('auto_greet').get('loaded_settings').get('general_auto_join_message').get('value'))
+                        }
+                    }
+
                     observeDOM(joychat_output, function (m) {
                         var addedNodes = [], removedNodes = [];
                         m.forEach(record => record.addedNodes.length & addedNodes.push(...record.addedNodes))
@@ -2372,38 +2387,61 @@ function onVisible(element, callback) {
                 console.log(all_couples)
 
                 if (settings.get('groups').get('ignore').get('loaded_settings').get('ignore_pn_men_setting').get('value')) {
-                    for (let man in all_men) {
-                        if (man.querySelector('span.joychat_user_name').textContent === tab_name) {
-                            close_tab(tab_name)
+                    for (let man of all_men) {
+                        if (tab_name.includes(man.querySelector('span.joychat_user_name').textContent)) {
+                            if (!check_string_against_ignore_list(tab_name, settings.get('groups').get('ignore').get('loaded_settings').get('pn_whitelist_editor_setting').get('value'))) {
+                                return true
+                            }
                         }
                     }
                 }
 
                 if (settings.get('groups').get('ignore').get('loaded_settings').get('ignore_pn_women_setting').get('value')) {
-                    for (let woman in all_women) {
-                        if (woman.querySelector('span.joychat_user_name').textContent === tab_name) {
-                            close_tab(tab_name)
+                    console.log('Women ignored, checking')
+                    for (let woman of all_women) {
+                        console.log('Checking: ' + woman.querySelector('span.joychat_user_name').textContent + ' against ' + tab_name)
+                        if (tab_name.includes(woman.querySelector('span.joychat_user_name').textContent)) {
+                            if (!check_string_against_ignore_list(tab_name, settings.get('groups').get('ignore').get('loaded_settings').get('pn_whitelist_editor_setting').get('value'))) {
+                                console.log('User: ' + woman.querySelector('span.joychat_user_name').textContent + ' not in whitelist ' + tab_name)
+                                return true
+                            }
                         }
                     }
                 }
 
                 if (settings.get('groups').get('ignore').get('loaded_settings').get('ignore_pn_couples_setting').get('value')) {
-                    for (let couple in all_couples) {
-                        if (couple.querySelector('span.joychat_user_name').textContent === tab_name) {
-                            close_tab(tab_name)
+                    for (let couple of all_couples) {
+                        if (tab_name.includes(couple.querySelector('span.joychat_user_name').textContent)) {
+                            if (!check_string_against_ignore_list(tab_name, settings.get('groups').get('ignore').get('loaded_settings').get('pn_whitelist_editor_setting').get('value'))) {
+                                return true
+                            }
                         }
                     }
                 }
+                return false
             }
+            return false
         }
 
         function close_tab(tab_name) {
             let outer_tabs = document.querySelectorAll('.tabs-outer > li > span.name')
             for (let outer_tab of outer_tabs) {
-                if (outer_tab.textContent === tab_name) {
-                    outer_tab.nextSibling.click()
+                console.log('Tab: ' + outer_tab.textContent + ' Tab name: ' + tab_name)
+                if (outer_tab.textContent.includes(tab_name)) {
+                   console.log(outer_tab.parentElement.querySelector('.glyphicons-remove'))
+                    outer_tab.parentElement.querySelector('.glyphicons-remove').click()
                 }
             }
+        }
+
+        function check_if_tab_is_active(tab_name) {
+            let outer_tabs = document.querySelectorAll('.tabs-outer > li')
+            for (let outer_tab of outer_tabs) {
+                if (outer_tab.textContent === tab_name && outer_tab.classList.contains('hi')) {
+                    return true
+                }
+            }
+            return false
         }
 
         function trigger_auto_idle() {
