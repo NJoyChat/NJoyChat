@@ -86,7 +86,13 @@ class TextAutoGreeting {
 
 }
 
-// New Settings Classes
+////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+//                                                                                                                    //
+//                                                                                                                    //
+//                                                 Settings                                                           //
+//                                                                                                                    //
+//                                                                                                                    //
+////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
 function create_settings_container_div(setting) {
     let div_container = document.createElement('div');
@@ -837,11 +843,11 @@ class SettingItemDetailsGradientEditor {
         let required_colors = Math.ceil(total / repetition);
         if (precomputed_sinebows.has(gradient_settings.toString())) {
             active_sinebow = precomputed_sinebows.get(gradient_settings.toString())
-            if (active_sinebow.length > required_colors) {
+            if (active_sinebow.length > 300) {
                 active_sinebow = new Map()
-                active_sinebow.set('gradient', cosineGradient(required_colors, [dc_offset1, dc_offset2, dc_offset3], [amp1, amp2, amp3], [freq1, freq2, freq3], [phase1, phase2, phase3]))
-                for (let i = 0; i < required_colors + 1; i++) {
-                    active_sinebow.set(i, calculateColorIndices(total, i, active_sinebow.get('gradient'), repetition))
+                active_sinebow.set('gradient', cosineGradient(300, [dc_offset1, dc_offset2, dc_offset3], [amp1, amp2, amp3], [freq1, freq2, freq3], [phase1, phase2, phase3]))
+                for (let i = 0; i < 301 + 1; i++) {
+                    active_sinebow.set(i, calculateColorIndices(300, i, active_sinebow.get('gradient'), repetition))
                 }
 
             }
@@ -850,7 +856,7 @@ class SettingItemDetailsGradientEditor {
             active_sinebow.set('gradient', cosineGradient(300, [dc_offset1, dc_offset2, dc_offset3], [amp1, amp2, amp3], [freq1, freq2, freq3], [phase1, phase2, phase3]))
             let gradient = active_sinebow.get('gradient')
             for (let i = 0; i < 301; i++) {
-                active_sinebow.set(i, calculateColorIndices(total, i, gradient, repetition))
+                active_sinebow.set(i, calculateColorIndices(300, i, gradient, repetition))
             }
             precomputed_sinebows.set(gradient_settings.toString(), active_sinebow)
         }
@@ -866,7 +872,7 @@ class SettingItemDetailsGradientEditor {
                         if (active_sinebow.has(Math.floor(x))) {
                             color_indices = active_sinebow.get(Math.floor(x))
                         } else {
-                            color_indices = calculateColorIndices(total, Math.floor(x), active_sinebow, repetition)
+                            color_indices = calculateColorIndices(300, Math.floor(x), active_sinebow, repetition)
                             active_sinebow.set(Math.floor(x), color_indices)
                         }
 
@@ -881,6 +887,14 @@ class SettingItemDetailsGradientEditor {
         return container_div
     }
 }
+
+////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+//                                                                                                                    //
+//                                                                                                                    //
+//                                               Gradient Functions                                                   //
+//                                                                                                                    //
+//                                                                                                                    //
+////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
 function wrapText(parent, letter, i) {
     let span = document.createElement("span");
@@ -1572,6 +1586,7 @@ function onVisible(element, callback) {
             "//cfnimg.joyclub.de/smile/fancycat.gif",
             "//cfnimg.joyclub.de/smile/pegasus.gif",
             "https://cdn-icons-png.flaticon.com/512/1494/1494976.png",
+            "//cfnimg.joyclub.de/smile/kuh.gif",
             "//cfnimg.joyclub.de/smile/matrix.gif"]
         let objects_to_load = ['macros', 'greetings', 'settings']
         let settings = await load_settings()
@@ -2428,7 +2443,7 @@ function onVisible(element, callback) {
             for (let outer_tab of outer_tabs) {
                 console.log('Tab: ' + outer_tab.textContent + ' Tab name: ' + tab_name)
                 if (outer_tab.textContent.includes(tab_name)) {
-                   console.log(outer_tab.parentElement.querySelector('.glyphicons-remove'))
+                    console.log(outer_tab.parentElement.querySelector('.glyphicons-remove'))
                     outer_tab.parentElement.querySelector('.glyphicons-remove').click()
                 }
             }
@@ -3175,10 +3190,10 @@ function onVisible(element, callback) {
             let required_colors = Math.ceil(total / repetition);
             if (precomputed_sinebows.has(gradient_settings.toString())) {
                 active_sinebow = precomputed_sinebows.get(gradient_settings.toString())
-                if (active_sinebow.length > required_colors) {
+                if (active_sinebow.length > 300) {
                     active_sinebow = new Map()
-                    active_sinebow.set('gradient', cosineGradient(required_colors, [dc_offset1, dc_offset2, dc_offset3], [amp1, amp2, amp3], [freq1, freq2, freq3], [phase1, phase2, phase3]))
-                    for (let i = 0; i < required_colors + 1; i++) {
+                    active_sinebow.set('gradient', cosineGradient(300, [dc_offset1, dc_offset2, dc_offset3], [amp1, amp2, amp3], [freq1, freq2, freq3], [phase1, phase2, phase3]))
+                    for (let i = 0; i < 301; i++) {
                         active_sinebow.set(i, calculateColorIndices(total, i, active_sinebow.get('gradient'), repetition))
                     }
 
@@ -3188,7 +3203,7 @@ function onVisible(element, callback) {
                 active_sinebow.set('gradient', cosineGradient(300, [dc_offset1, dc_offset2, dc_offset3], [amp1, amp2, amp3], [freq1, freq2, freq3], [phase1, phase2, phase3]))
                 let gradient = active_sinebow.get('gradient')
                 for (let i = 0; i < 301; i++) {
-                    active_sinebow.set(i, calculateColorIndices(total, i, gradient, repetition))
+                    active_sinebow.set(i, calculateColorIndices(300, i, gradient, repetition))
                 }
                 precomputed_sinebows.set(gradient_settings.toString(), active_sinebow)
             }
@@ -3204,7 +3219,7 @@ function onVisible(element, callback) {
                             if (active_sinebow.has(Math.floor(x))) {
                                 color_indices = active_sinebow.get(Math.floor(x))
                             } else {
-                                color_indices = calculateColorIndices(total, Math.floor(x), active_sinebow, repetition)
+                                color_indices = calculateColorIndices(300, Math.floor(x), active_sinebow, repetition)
                                 active_sinebow.set(Math.floor(x), color_indices)
                             }
 
