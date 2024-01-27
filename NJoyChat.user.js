@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         NJoyChat
 // @namespace    https://www.joyclub.de/chat/login/
-// @version      Alpha-v34
+// @version      Alpha-v35
 // @description  Improves JoyChat with additional utilities.
 // @author       NJoyChat Team
 // @match        https://www.joyclub.de/chat/login/
@@ -84,6 +84,32 @@ class TextAutoGreeting {
         }
     }
 
+}
+
+class TextBooleanCombo extends Map {
+    constructor(text_boolean_combo_id, text_setting, boolean_setting) {
+        super();
+        this.set('text_boolean_combo_id', text_boolean_combo_id)
+        this.set('text_setting', text_setting)
+        this.set('boolean_setting', boolean_setting)
+    }
+
+    static fromJSON(json) {
+        const text_boolean_combo = new TextBooleanCombo();
+
+        text_boolean_combo.set('text_boolean_combo_id', json.text_boolean_combo_id)
+        text_boolean_combo.set('text_setting', json.text_setting)
+        text_boolean_combo.set('boolean_setting', json.boolean_setting)
+        return text_boolean_combo;
+    }
+
+    toJSON() {
+        return {
+            text_boolean_combo_id: this.get('text_boolean_combo_id'),
+            text_setting: this.get('text_setting'),
+            boolean_setting: this.get('boolean_setting'),
+        }
+    }
 }
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -401,6 +427,9 @@ class SettingsGroupDetails {
         } else if (setting_type === 'multi_choice_user_names') {
             let multi_choice_user_names = new SettingItemDetailsMultipleChoiceUserNames(setting)
             return [multi_choice_user_names.div_container]
+        } else if (setting_type === 'text_boolean_combo_editor') {
+            let text_boolean_combo_editor = new SettingItemDetailsTextBooleanComboEditor(setting, this.settings_detail_container_div)
+            return [text_boolean_combo_editor.div_container]
         }
         let setting_details = document.createElement('p')
         let setting_display_name = setting.get('display_name')
@@ -1446,6 +1475,225 @@ class SettingItemDetailsUserListEditor {
 
 }
 
+class SettingItemDetailsTextBooleanComboEditor {
+
+    constructor(setting, parent) {
+        this.div_container = create_settings_container_div(setting)
+        this.div_container.style.display = 'flex'
+        this.div_container.style.flexDirection = 'column'
+        this.div_container.style.flex = '1'
+        this.div_container.setAttribute('id', 'setting_item_detail_boolean_editor_join_container_' + setting.get('name'))
+
+        let setting_details = document.createElement('p')
+        setting_details.textContent = setting.get('display_name') + ':'
+        setting_details.style.float = 'left'
+        this.div_container.appendChild(setting_details)
+
+        let user_name_choice = parent.querySelector('#setting_item_detail_multi_choice_user_names_container_' + setting.get('name') + '_user_name_choice')
+        if (user_name_choice !== null) {
+            this.user_name_choice = user_name_choice
+            this.user_name_choice.button.addEventListener('click', this.create_new_macro_for_user_name)
+            this.div_container.appendChild(this.user_name_choice)
+        }
+
+        let text_boolean_combos = setting.get('value')
+        let loaded_text_boolean_combos = []
+        for (let text_boolean_combo of text_boolean_combos) {
+            loaded_text_boolean_combos.push(TextBooleanCombo.fromJSON(JSON.parse(text_boolean_combo)))
+        }
+
+        this.select = document.createElement('select')
+
+        if (loaded_text_boolean_combos.length === 0) {
+            let new_macro_option = document.createElement('option')
+            new_macro_option.textContent = ''
+            new_macro_option.value_index = -2
+            this.select.appendChild(new_macro_option)
+        } else {
+            for (let i = 0; i < loaded_text_boolean_combos.length; i++) {
+                let possible_option_value = document.createElement('option')
+                possible_option_value.textContent = loaded_text_boolean_combos[i].get('text_setting')
+                possible_option_value.value_index = i
+                this.select.appendChild(possible_option_value)
+            }
+        }
+
+        let new_text_boolean_combo_option = document.createElement('option')
+        new_text_boolean_combo_option.textContent = 'Enable/Disable for new User'
+        new_text_boolean_combo_option.value_index = -1
+        this.select.appendChild(new_text_boolean_combo_option)
+
+        this.select.addEventListener('change', this.toggle_setting)
+        this.select.style.float = 'right'
+        this.div_container.select = this.select
+        // Pass function references to child elements in an insane way because javascript chose violence.
+        this.div_container.set_editor_fields = this.set_editor_fields
+        this.div_container.clear_editor_fields = this.clear_editor_fields
+        this.div_container.appendChild(this.select)
+
+        this.delete_macro_button = document.createElement('button')
+        this.delete_macro_button.textContent = 'Delete Setting-Entry'
+        this.delete_macro_button.setAttribute('class', " nj-button__content nsecondary nj-button")
+        this.delete_macro_button.addEventListener('click', this.delete_macro)
+        this.div_container.appendChild(this.delete_macro_button)
+
+        this.div_container.appendChild(this.create_macro_editor())
+    }
+
+    create_new_macro_for_user_name() {
+
+        let setting_container = this.parentNode.parentNode;
+        let user_name_select = setting_container.select;
+        let current_value = setting_container.setting.get('value')
+        let text_boolean_combo
+        if (current_value.length === 0) {
+            user_name_select.removeChild(user_name_select.firstChild)
+        }
+        let possible_user_names_select = this.parentNode.select;
+        text_boolean_combo = new TextBooleanCombo(current_value.length + 1, possible_user_names_select.value, false)
+        current_value.push(JSON.stringify(text_boolean_combo))
+        setting_container.setting.set('value', current_value)
+        let possible_option_value = document.createElement('option')
+        possible_option_value.textContent = text_boolean_combo.get('text_setting')
+        possible_option_value.value_index = current_value.length - 1
+        user_name_select.lastChild.before(possible_option_value)
+        user_name_select.selectedOptions[0].selected = false
+        possible_option_value.selected = true
+        setting_container.set_editor_fields(text_boolean_combo, setting_container.id + '_text_boolean_editor_container')
+    }
+
+    create_macro_editor() {
+        let text_boolean_editor_container = document.createElement('div')
+        text_boolean_editor_container.id = this.div_container.id + '_text_boolean_editor_container'
+        text_boolean_editor_container.style.display = 'flex'
+        text_boolean_editor_container.style.flex = 1
+        text_boolean_editor_container.style.flexDirection = 'column'
+
+        let text_boolean_id_editor = document.createElement('input')
+        text_boolean_id_editor.id = text_boolean_editor_container.id + '_id_editor'
+        text_boolean_id_editor.macro_field = 'text_boolean_combo_id'
+        text_boolean_id_editor.style.display = 'flex'
+        text_boolean_id_editor.addEventListener('change', this.update_macro_field)
+        text_boolean_editor_container.appendChild(this.create_label_input_container("Notification ID", text_boolean_id_editor))
+
+        let text_boolean_combo_text_editor = document.createElement('input')
+        text_boolean_combo_text_editor.id = text_boolean_editor_container.id + '_text_editor'
+        text_boolean_combo_text_editor.macro_field = 'text_setting'
+        text_boolean_combo_text_editor.style.display = 'flex'
+        text_boolean_combo_text_editor.addEventListener('change', this.update_macro_field)
+        text_boolean_editor_container.appendChild(this.create_label_input_container('Username', text_boolean_combo_text_editor))
+
+        let text_boolean_combo_boolean_editor = document.createElement('input')
+        text_boolean_combo_boolean_editor.id = text_boolean_editor_container.id + '_boolean_editor'
+        text_boolean_combo_boolean_editor.type = "checkbox"
+        text_boolean_combo_boolean_editor.checked = false
+        text_boolean_combo_boolean_editor.macro_field = 'boolean_setting'
+        text_boolean_combo_boolean_editor.style.display = 'flex'
+        text_boolean_combo_boolean_editor.addEventListener('change', this.update_macro_field)
+        text_boolean_editor_container.appendChild(this.create_label_input_container('Enabled/disabled', text_boolean_combo_boolean_editor))
+
+        return text_boolean_editor_container
+    }
+
+    create_label_input_container(label_name, input) {
+        let label_input_container = document.createElement('div')
+        label_input_container.style.display = 'flex'
+        label_input_container.style.flex = '1'
+        label_input_container.style.flexDirection = 'row'
+        let label = document.createElement('label')
+        label.setAttribute('for', input.id)
+        label.innerText = label_name
+        label.style.display = 'flex'
+        label.style.flex = '1'
+        label_input_container.appendChild(label)
+        label_input_container.appendChild(input)
+        return label_input_container
+    }
+
+    update_macro_field() {
+        let parentNode = this.parentNode.parentNode.parentNode;
+        let current_value = parentNode.setting.get('value')
+        let text_boolean_combo_to_change = TextBooleanCombo.fromJSON(JSON.parse(current_value[parentNode.select.selectedOptions[0].value_index]))
+        text_boolean_combo_to_change.set(this.macro_field, this.value)
+        current_value[parentNode.select.selectedOptions[0].value_index] = JSON.stringify(text_boolean_combo_to_change)
+        parentNode.setting.set('value', current_value)
+    }
+
+    set_editor_fields(text_boolean_combo, container_id) {
+        let macro_editor_container = document.getElementById(container_id)
+        for (let child of macro_editor_container.childNodes) {
+            if (child.childNodes[1].type !== 'checkbox') {
+                child.childNodes[1].value = text_boolean_combo.get(child.childNodes[1].macro_field)
+            } else {
+                child.childNodes[1].checked = text_boolean_combo.get(child.childNodes[1].macro_field)
+            }
+        }
+    }
+
+    clear_editor_fields(container_id) {
+        let macro_editor_container = document.getElementById(container_id)
+        for (let child of macro_editor_container.childNodes) {
+            if (child.childNodes[1].type !== 'checkbox') {
+                child.childNodes[1].value = ''
+            } else {
+                child.childNodes[1].checked = false
+            }
+        }
+    }
+
+    delete_macro() {
+        let current_value = this.parentNode.setting.get('value')
+        let select = this.parentNode.select;
+        let current_value_index = select.selectedOptions[0].value_index
+        if (current_value_index !== -2 && current_value_index !== -1) { // Don't delete the placeholder node. This is handled by create new macro automatically.
+            current_value.splice(current_value_index, 1)
+            if (current_value.length === 0) { // Create placeholder node so create new macro can fire 'on change'
+                let new_macro_option = document.createElement('option')
+                new_macro_option.textContent = ''
+                new_macro_option.value_index = -2
+                select.firstChild.before(new_macro_option)
+                this.parentNode.clear_editor_fields(this.parentNode.id + '_text_boolean_editor_container')
+            } else {
+                this.parentNode.set_editor_fields(TextBooleanCombo.fromJSON(JSON.parse(current_value[0])), this.parentNode.id + '_text_boolean_editor_container')
+            }
+            select.selectedOptions[0].remove()
+            select.firstChild.selected = true
+            let new_numbering = 0
+            for (let child of select.children) {
+                if (child.value_index !== -1 && child.value_index !== -2) {
+                    child.value_index = new_numbering
+                    new_numbering += 1
+                }
+            }
+            this.parentNode.setting.set('value', current_value)
+        }
+    }
+
+    toggle_setting() {
+        let current_value = this.parentNode.setting.get('value')
+        let value_index = this.selectedOptions[0].value_index
+        let text_boolean_combo
+        if (value_index === -1) {
+            if (current_value.length === 0) {
+                this.removeChild(this.firstChild)
+            }
+            text_boolean_combo = new TextBooleanCombo(current_value.length + 1, 'Username hier', false)
+            current_value.push(JSON.stringify(text_boolean_combo))
+            this.parentNode.setting.set('value', current_value)
+            let possible_option_value = document.createElement('option')
+            possible_option_value.textContent = text_boolean_combo.get('text_setting')
+            possible_option_value.value_index = current_value.length - 1
+            this.lastChild.before(possible_option_value)
+            this.selectedOptions[0].selected = false
+            possible_option_value.selected = true
+        } else {
+            text_boolean_combo = TextBooleanCombo.fromJSON(JSON.parse(current_value[value_index]))
+        }
+        this.parentNode.set_editor_fields(text_boolean_combo, this.parentNode.id + '_text_boolean_editor_container')
+    }
+
+}
+
 class SettingItemDetailsMultipleChoiceUserNames {
 
     constructor(setting) {
@@ -1526,6 +1774,96 @@ function onVisible(element, callback) {
     }).observe(element);
 }
 
+
+function createQuickSettings() {
+// Create a button
+    const button = document.createElement('button');
+    button.innerText = 'Settings';
+    document.body.appendChild(button);
+
+// Create a settings menu container
+    const settingsMenu = document.createElement('div');
+    settingsMenu.style.position = 'absolute';
+    settingsMenu.style.display = 'none';
+    settingsMenu.style.backgroundColor = 'white';
+    settingsMenu.style.border = '1px solid #ccc';
+    settingsMenu.style.padding = '10px';
+    settingsMenu.style.zIndex = '1000';
+
+// Create settings elements inside the menu
+    const dropdown = document.createElement('select');
+    dropdown.innerHTML = `
+  <option value="option1">Option 1</option>
+  <option value="option2">Option 2</option>
+  <option value="option3">Option 3</option>
+`;
+    const checkbox = document.createElement('input');
+    checkbox.type = 'checkbox';
+    checkbox.id = 'checkbox';
+    const label = document.createElement('label');
+    label.innerText = 'Checkbox Setting';
+    label.appendChild(checkbox);
+    const textbox = document.createElement('input');
+    textbox.type = 'text';
+    textbox.placeholder = 'Text Setting';
+
+// Append settings elements to the menu
+    settingsMenu.appendChild(dropdown);
+    settingsMenu.appendChild(label);
+    settingsMenu.appendChild(textbox);
+    document.body.appendChild(settingsMenu);
+
+// Flag to track whether the mouse is over the button or the settings menu
+    let isMouseOverButton = false;
+    let isMouseOverMenu = false;
+
+// Function to show the settings menu above the button on button hover
+    button.addEventListener('mouseover', () => {
+        isMouseOverButton = true;
+        displayMenu();
+    });
+
+// Function to hide the settings menu when the mouse is not over the button or menu
+    button.addEventListener('mouseout', () => {
+        isMouseOverButton = false;
+        hideMenu();
+    });
+
+// Function to show the settings menu on menu hover
+    settingsMenu.addEventListener('mouseover', () => {
+        isMouseOverMenu = true;
+        clearTimeout(hideTimeout); // Prevent hiding when hovering over the menu
+    });
+
+// Function to hide the settings menu when the mouse is not over the button or menu
+    settingsMenu.addEventListener('mouseout', () => {
+        isMouseOverMenu = false;
+        hideMenu();
+    });
+
+// Function to display the menu if the mouse is over the button or menu
+    function displayMenu() {
+        if (isMouseOverButton || isMouseOverMenu) {
+            const rect = button.getBoundingClientRect();
+            settingsMenu.style.left = rect.left + 'px'; // Adjust the left position
+            settingsMenu.style.top = rect.top - settingsMenu.clientHeight + 'px'; // Adjust the top position
+            settingsMenu.style.display = 'block';
+        }
+    }
+
+// Function to hide the menu if the mouse is not over the button or menu
+    let hideTimeout;
+
+    function hideMenu() {
+        hideTimeout = setTimeout(() => {
+            if (!isMouseOverButton && !isMouseOverMenu) {
+                settingsMenu.style.display = 'none';
+            }
+        }, 200);
+    }
+}
+
+
 (async () => {
         'use strict';
         this.$ = this.jQuery = jQuery.noConflict(true); // Don't break existing JQuery
@@ -1546,6 +1884,7 @@ function onVisible(element, callback) {
         let IMAGE_MAX_HEIGHT = 250
         let freq = Math.PI * 2 / 100; // TODO Possibly make this global or a config value?
         let auto_greetings = new Map()
+        let auto_join_notifications = new Map()
         let username_self = undefined
         let emoji_list = ["",
             "//cfnimg.joyclub.de/smile/g.gif",
@@ -1599,7 +1938,7 @@ function onVisible(element, callback) {
         let settings_menu
 
         waitForKeyElements(".toolbar", start_running)
-        waitForKeyElements("ul.userlist:nth-child(3)", watch_user_list_for_change)
+        //waitForKeyElements("ul.userlist:nth-child(3)", watch_user_list_for_change)
         waitForKeyElements(".joychat_output", watch_chat_output_for_change)
         waitForKeyElements(".send", watch_for_send_button_submit)
         waitForKeyElements('#j_growl_container > j-growl[variant="error"]', trigger_auto_idle)
@@ -1622,10 +1961,12 @@ function onVisible(element, callback) {
                 create_function_buttons()
                 create_macro_buttons()
                 load_auto_greetings()
+                load_auto_join_notifications()
                 create_audio_elements()
                 watch_for_textarea_submit()
             }
             //profile_cache_accesses()
+            //createQuickSettings()
         }
 
         function create_close_and_save_settings_button() {
@@ -1747,7 +2088,7 @@ function onVisible(element, callback) {
             // TODO: Make this an actual number with safety checks and stuff
             let maskotchen_speed_setting = new Setting('maskotchen_speed', 'Maskotchen Geschwindigkeit', 'string', appearance_settings_group.get('name'), '5.0', ['5.0'])
             appearance_settings_group.add_setting(maskotchen_speed_setting)
-            let maskotchen_left_setting = new Setting('maskotchen_left', 'Maskotchen Linked Rand', 'string', appearance_settings_group.get('name'), '5.0', ['5.0'])
+            let maskotchen_left_setting = new Setting('maskotchen_left', 'Maskotchen Linker Rand', 'string', appearance_settings_group.get('name'), '5.0', ['5.0'])
             appearance_settings_group.add_setting(maskotchen_left_setting)
             let maskotchen_right_setting = new Setting('maskotchen_right', 'Maskotchen Rechter Rand', 'string', appearance_settings_group.get('name'), '95.0', ['95.0'])
             appearance_settings_group.add_setting(maskotchen_right_setting)
@@ -1803,6 +2144,19 @@ function onVisible(element, callback) {
             auto_greet_settings_group.add_setting(auto_greet_user_name_choice)
             let auto_greet_editor_setting = new Setting('auto_greet_editor_setting', 'Auto-Begrüßungs Editor', 'text_editor_macro', auto_greet_settings_group.get('name'), [], [])
             auto_greet_settings_group.add_setting(auto_greet_editor_setting)
+            let auto_greet_options_header = new Setting('auto_greet_options_header', 'Auto-Begrüßungs Optionen', 'section_header', auto_greet_settings_group.get('name'), 'Auto-Begrüßungs Optionen', ['Auto-Begrüßungs Optionen'])
+            auto_greet_settings_group.add_setting(auto_greet_options_header)
+            let auto_greet_options_minimum_delay = new Setting('auto_greet_options_min_delay', 'Auto-Begrüßungs minimale Verzögerung', 'string', auto_greet_settings_group.get('name'), '3', ['2', '3', '4', '5'])
+            auto_greet_settings_group.add_setting(auto_greet_options_minimum_delay)
+            let auto_greet_options_maximum_delay = new Setting('auto_greet_options_max_delay', 'Auto-Begrüßungs maximale Verzögerung', 'string', auto_greet_settings_group.get('name'), '5', ['2', '3', '4', '5'])
+            auto_greet_settings_group.add_setting(auto_greet_options_maximum_delay)
+
+            let join_notification_editor_header = new Setting('auto_join_notification_header', "Auto-Notification bei Join", 'section_header', auto_greet_settings_group.get('name'), "Auto-Notification bei Join", ["Auto-Notification bei Join"])
+            auto_greet_settings_group.add_setting(join_notification_editor_header)
+            let join_notification_user_name_choice = new Setting('auto_join_notification_setting_user_name_choice', 'Users in channel', 'multi_choice_user_names', auto_greet_settings_group.get('name'), 'Users in channel', ['Users in channel'])
+            auto_greet_settings_group.add_setting(join_notification_user_name_choice)
+            let join_notification_boolean_editor = new Setting('auto_join_notification_setting', 'Auto-Notification Auswahl', 'text_boolean_combo_editor', auto_greet_settings_group.get('name'), [], [])
+            auto_greet_settings_group.add_setting(join_notification_boolean_editor)
 
             // Auto greet for everyone
             let general_auto_greet_editor_header = new Setting('general_auto_greet_editor_header', 'Allgemeine Auto-Begrüßungen', 'section_header', auto_greet_settings_group.get('name'), 'Allgemeine Auto-Begrüßungen', ['Allgemeine Auto-Begrüßungen'])
@@ -1811,6 +2165,10 @@ function onVisible(element, callback) {
             auto_greet_settings_group.add_setting(general_auto_greet_enabled)
             let general_auto_greet_message = new Setting('general_auto_greet_message', 'Allgemeine Auto-Begrüßungsnachricht', 'string', auto_greet_settings_group.get('name'), 'Hallo %last_join%.', ['Hallo %last_join%.'])
             auto_greet_settings_group.add_setting(general_auto_greet_message)
+            let general_auto_greet_options_minimum_delay = new Setting('general_auto_greet_options_min_delay', 'Allgemeine Auto-Begrüßungs minimale Verzögerung', 'string', auto_greet_settings_group.get('name'), '3', ['2', '3', '4', '5'])
+            auto_greet_settings_group.add_setting(general_auto_greet_options_minimum_delay)
+            let general_auto_greet_options_maximum_delay = new Setting('general_auto_greet_options_max_delay', 'Allgemeine Auto-Begrüßungs maximale Verzögerung', 'string', auto_greet_settings_group.get('name'), '5', ['2', '3', '4', '5'])
+            auto_greet_settings_group.add_setting(general_auto_greet_options_maximum_delay)
 
             // Auto join message
             let general_auto_join_editor_header = new Setting('general_auto_join_editor_header', 'Auto-Join Nachricht', 'section_header', auto_greet_settings_group.get('name'), 'Allgemeine Auto-Begrüßungen', ['Allgemeine Auto-Begrüßungen'])
@@ -1819,6 +2177,10 @@ function onVisible(element, callback) {
             auto_greet_settings_group.add_setting(general_auto_join_enabled)
             let general_auto_join_message = new Setting('general_auto_join_message', 'Auto-Join Nachricht', 'string', auto_greet_settings_group.get('name'), 'Hallo zusammen.', ['Hallo zusammen.'])
             auto_greet_settings_group.add_setting(general_auto_join_message)
+            let general_auto_join_options_minimum_delay = new Setting('general_auto_join_options_min_delay', 'Auto-Join Nachricht minimale Verzögerung', 'string', auto_greet_settings_group.get('name'), '3', ['2', '3', '4', '5'])
+            auto_greet_settings_group.add_setting(general_auto_join_options_minimum_delay)
+            let general_auto_join_options_maximum_delay = new Setting('general_auto_join_options_max_delay', 'Auto-Join Nachricht maximale Verzögerung', 'string', auto_greet_settings_group.get('name'), '5', ['2', '3', '4', '5'])
+            auto_greet_settings_group.add_setting(general_auto_join_options_maximum_delay)
 
             return auto_greet_settings_group
         }
@@ -1894,6 +2256,7 @@ function onVisible(element, callback) {
                 create_macro_buttons()
                 auto_greetings.clear()
                 load_auto_greetings()
+                load_auto_join_notifications()
             }
         }
 
@@ -1909,6 +2272,13 @@ function onVisible(element, callback) {
             for (const macro of settings.get('groups').get('auto_greet').get('loaded_settings').get('auto_greet_editor_setting').get('value')) {
                 let auto_greeting = TextAutoGreeting.fromJSON(JSON.parse(macro))
                 auto_greetings.set(auto_greeting.get('name'), auto_greeting)
+            }
+        }
+
+        function load_auto_join_notifications() {
+            for (const text_boolean_combo of settings.get('groups').get('auto_greet').get('loaded_settings').get('auto_join_notification_setting').get('value')) {
+                let auto_join_notification = TextBooleanCombo.fromJSON(JSON.parse(text_boolean_combo))
+                auto_join_notifications.set(auto_join_notification.get('text_setting'), auto_join_notification)
             }
         }
 
@@ -2063,7 +2433,6 @@ function onVisible(element, callback) {
             //document.getElementById('njoy_function_buttons_container').appendChild(show_settings_button)
             create_close_and_save_settings_button()
         }
-
 
         function add_button(macro, custom_onclick) {
             let macro_button = document.createElement('button')
@@ -2326,8 +2695,13 @@ function onVisible(element, callback) {
 
                 if (!observed_chat_outputs.includes(joychat_output)) {
                     if (settings.get('groups').get('auto_greet').get('loaded_settings').get('general_auto_join_enabled').get('value')) {
-                        if (check_if_tab_is_active(tab_name)) {
-                            say_macro(settings.get('groups').get('auto_greet').get('loaded_settings').get('general_auto_join_message').get('value'))
+                        if (check_if_tab_is_active(tab_name) && !check_if_tab_is_a_username(tab_name) && tab_name !== 'Server') {
+                            let min_delay = settings.get('groups').get('auto_greet').get('loaded_settings').get('general_auto_join_options_min_delay').get('value')
+                            let max_delay = settings.get('groups').get('auto_greet').get('loaded_settings').get('general_auto_join_options_max_delay').get('value')
+                            let random_delay = getRandomDelay(min_delay, max_delay)
+                            setTimeout(function () {
+                                say_macro(settings.get('groups').get('auto_greet').get('loaded_settings').get('general_auto_join_message').get('value'))
+                            }, random_delay)
                         }
                     }
 
@@ -2370,6 +2744,15 @@ function onVisible(element, callback) {
                         }
                     });
                     observed_chat_outputs.push(joychat_output)
+                }
+            }
+        }
+
+        function check_if_tab_is_a_username(tab_name) {
+            let all_users = document.querySelectorAll('#joychat_userlists > ul.userlist > li.channel_user > div.channel_user_info')
+            for (let user of all_users){
+                if (tab_name.includes(user.querySelector('span.joychat_user_name').textContent)){
+                    return true
                 }
             }
         }
@@ -2586,52 +2969,10 @@ function onVisible(element, callback) {
                         audio.play()
                     }
                 }
-                let actual_chat_content = added_node.querySelector('p')
-                let new_chat_content = document.createElement('p')
+                let name_of_joined_user = added_node.querySelector('strong').innerText
 
-                let lucky_punch = process_control_spaces(actual_chat_content.childNodes[actual_chat_content.childNodes.length - 1].nodeValue)
-
-                // found control spaces on first try.
-                actual_chat_content.childNodes[actual_chat_content.childNodes.length - 1].nodeValue = lucky_punch[0]
-
-                let control_code_map = new Map()
-                control_code_map.set(1, chat_message_njoy_emoji_handler)
-                control_code_map.set(2, chat_message_njoy_image_handler)
-                control_code_map.set(3, text_rainbow_message_control_code_handler)
-                control_code_map.set(4, chat_message_header_username_icon_control_code_handler)
-                control_code_map.set(5, chat_message_header_rainbow_user_name_control_code_handler)
-
-                for (let i = actual_chat_content.childNodes.length - 1; i >= 0; i--) {
-                    let message = [actual_chat_content.childNodes[i]]
-
-                    for (let control_code in individual_control_codes) {
-                        //console.log('checking control code ', individual_control_codes[control_code][0], ' Map has control code: ', control_code_map.has(individual_control_codes[control_code][0]))
-                        if (control_code_map.has(individual_control_codes[control_code][0])) {
-                            if (Array.isArray(message)) {
-                                //console.log('Invoking child handlers...')
-                                message = invoke_handler_for_children(message, individual_control_codes[control_code].slice(2, individual_control_codes[control_code].length), control_code_map.get(individual_control_codes[control_code][0]))
-                            } else {
-                                message = control_code_map.get(individual_control_codes[control_code][0])(message, individual_control_codes[control_code].slice(2, individual_control_codes[control_code].length))
-                            }
-                        }
-                    }
-
-                    if (Array.isArray(message)) {
-                        invoke_handler_for_children(message, null, chat_message_ignore_message_handler)
-                    } else {
-                        chat_message_ignore_message_handler(message, null)
-                    }
-
-                    if (Array.isArray(message)) {
-                        append_before_first_child(message, new_chat_content)
-                    } else {
-                        //console.log('Straight appending message (should not happen)', message)
-                        new_chat_content.appendChild(message)
-                        new_chat_content.insertBefore(message, new_chat_content.firstChild)
-                    }
-                }
-
-                actual_chat_content.replaceWith(new_chat_content)
+                chat_join_auto_greeting_handler(name_of_joined_user, null)
+                chat_join_audio_notification_handler(name_of_joined_user, null)
             }
         }
 
@@ -2739,6 +3080,34 @@ function onVisible(element, callback) {
                 }
             }
             return false;
+        }
+
+        function chat_join_auto_greeting_handler(new_user, options) {
+            if (auto_greetings.has(new_user)) {
+                let auto_greeting = auto_greetings.get(new_user).get('auto_greeting_text')
+                let min_delay = settings.get('groups').get('auto_greet').get('loaded_settings').get('auto_greet_options_min_delay').get('value')
+                let max_delay = settings.get('groups').get('auto_greet').get('loaded_settings').get('auto_greet_options_max_delay').get('value')
+                setTimeout(function () {
+                    say_macro(auto_greeting)
+                }, getRandomDelay(min_delay, max_delay))
+            } else if (settings.get('groups').get('auto_greet').get('loaded_settings').get('general_auto_greet_enabled').get('value')){
+                let general_auto_greeting = settings.get('groups').get('auto_greet').get('loaded_settings').get('general_auto_greet_message').get('value').replaceAll("%last_join%", new_user)
+                let min_delay = settings.get('groups').get('auto_greet').get('loaded_settings').get('general_auto_greet_options_min_delay').get('value')
+                let max_delay = settings.get('groups').get('auto_greet').get('loaded_settings').get('general_auto_greet_options_max_delay').get('value')
+                setTimeout(function () {
+                    say_macro(general_auto_greeting)
+                }, getRandomDelay(min_delay, max_delay))
+            }
+        }
+
+        function chat_join_audio_notification_handler(new_user, options) {
+            if (auto_join_notifications.has(new_user)) {
+                let auto_join_notification_setting = auto_join_notifications.get(new_user).get('boolean_setting')
+                if (auto_join_notification_setting) {
+                    let audio = document.getElementById('njoy_notification_audio')
+                    audio.play()
+                }
+            }
         }
 
         function chat_message_header_username_icon_control_code_handler(message, options) {
@@ -2933,7 +3302,6 @@ function onVisible(element, callback) {
             }
         }
 
-
         function parse_gradient_options(options) {
             let all_numbers = []
             let current_number = ''
@@ -3087,7 +3455,6 @@ function onVisible(element, callback) {
             }
         }
 
-
         function pre_submit_modifications() {
             if (document.querySelectorAll('#joychat_input_text')[0].value != '') {
                 let config_values = []
@@ -3232,6 +3599,10 @@ function onVisible(element, callback) {
                 });
             t1.play()
             return container_div
+        }
+
+        function getRandomDelay(min, max) {
+            return (Math.floor(Math.random() * (parseInt(max) - parseInt(min) + 1)) + parseInt(min)) * 1000;
         }
 
     }
