@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         NJoyChat
 // @namespace    https://www.joyclub.de/chat/login/
-// @version      Alpha-v35
+// @version      Alpha-v36
 // @description  Improves JoyChat with additional utilities.
 // @author       NJoyChat Team
 // @match        https://www.joyclub.de/chat/login/
@@ -1942,6 +1942,7 @@ function createQuickSettings() {
         waitForKeyElements(".joychat_output", watch_chat_output_for_change)
         waitForKeyElements(".send", watch_for_send_button_submit)
         waitForKeyElements('#j_growl_container > j-growl[variant="error"]', trigger_auto_idle)
+        waitForKeyElements('#j_growl_container > j-growl[variant="success"]', trigger_auto_welcome_close)
 
         function profile_cache_accesses() {
             setTimeout(function () {
@@ -2061,6 +2062,8 @@ function createQuickSettings() {
             general_settings_group.add_setting(auto_idle_enabled)
             let auto_idle_text = new Setting('auto_idle_text', 'Auto-Anti-Idle Nachricht', 'string', general_settings_group.get('name'), 'Idle.', ['Idle.'])
             general_settings_group.add_setting(auto_idle_text)
+            let auto_welcome_close_enabled = new Setting('auto_welcome_close_enabled', 'Willkommensnachricht automatisch schließen', 'boolean', general_settings_group.get('name'), false, [true, false])
+            general_settings_group.add_setting(auto_welcome_close_enabled)
 
             return general_settings_group
         }
@@ -2849,6 +2852,15 @@ function createQuickSettings() {
                 if (warning.childNodes[0].textContent === '2001 Idle Warnung') {
                     say_macro(auto_idle_text)
                     document.querySelectorAll('#j_growl_container > j-growl[variant="error"]')[0].shadowRoot.querySelector('aside > button').click()
+                }
+            }
+        }
+
+        function trigger_auto_welcome_close(){
+            if (settings.get('groups').get('general').get('loaded_settings').get('auto_welcome_close_enabled').get('value')) {
+                let welcome = document.querySelectorAll('#j_growl_container > j-growl[variant="success"]')[0]
+                if (welcome.childNodes[0].textContent === 'Herzlich Willkommen im JOYchat.') {
+                    document.querySelectorAll('#j_growl_container > j-growl[variant="success"]')[0].shadowRoot.querySelector('aside > button').click()
                 }
             }
         }
