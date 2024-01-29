@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         NJoyChat
 // @namespace    https://www.joyclub.de/chat/login/
-// @version      Alpha-v36
+// @version      Alpha-v37
 // @description  Improves JoyChat with additional utilities.
 // @author       NJoyChat Team
 // @match        https://www.joyclub.de/chat/login/
@@ -2455,13 +2455,14 @@ function createQuickSettings() {
         function say_macro(macro_text) {
             let joychat_input_box = document.querySelectorAll('#joychat_input_text')[0]
             if (joychat_input_box !== null && joychat_input_box !== undefined) {
+                let already_typed_text = joychat_input_box.value
                 joychat_input_box.value = macro_text;
                 pre_submit_modifications()
                 let joychat_send_button = document.querySelectorAll('.send')[0]
                 if (joychat_send_button !== undefined && joychat_send_button !== null) {
                     joychat_send_button.dispatchEvent(new Event('click', {bubbles: true}))
                 }
-                joychat_input_box.value = ''
+                joychat_input_box.value = already_typed_text
             }
         }
 
