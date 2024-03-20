@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         NJoyChat
 // @namespace    https://www.joyclub.de/chat/login/
-// @version      Alpha-v39
+// @version      Alpha-v40
 // @description  Improves JoyChat with additional utilities.
 // @author       NJoyChat Team
 // @match        https://www.joyclub.de/chat/login/
@@ -3107,7 +3107,10 @@ function createQuickSettings() {
         }
 
         function check_string_against_own_username(stringToCheck, username){
-            const regexPattern = new RegExp(username)
+            const regexPattern = new RegExp(".*" + username + ".*", "i")
+            console.log(regexPattern)
+            console.log(stringToCheck)
+            console.log(username)
             if (regexPattern.test(stringToCheck)){
                 let audio = document.getElementById('njoy_notification_audio')
                 audio.play()
@@ -3231,12 +3234,19 @@ function createQuickSettings() {
         }
 
         function chat_message_notification_username_mentioned(message, options){
-            if (message.nodeType !== Node.TEXT_NODE) {
-                console.log('Text control handler invoked on non text node. Returning.')
+            console.log("Mention debugging")
+            console.log(message)
+            console.log(message.parentNode)
+            console.log(message.parentNode.className)
+            if (message.nodeType !== Node.ELEMENT_NODE || message.nodeName.toLowerCase() !== 'strong' || message.parentNode.className === 'user') {
+                console.log('Element control handler invoked on non element node. Returning.')
                 return [message]
             }
+            console.log("Node is valid:")
+            console.log(message)
+            console.log("This was a valid node.")
             if (settings.get('groups').get('general').get('loaded_settings').get('notification_username_mentioned_setting').get('value')) {
-                check_string_against_own_username(message.textContent, extract_own_user_from_user_list())
+                check_string_against_own_username(message.innerText, extract_own_user_from_user_list())
             }
 
             return [message]
