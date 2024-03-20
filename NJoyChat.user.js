@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         NJoyChat
 // @namespace    https://www.joyclub.de/chat/login/
-// @version      Alpha-v38
+// @version      Alpha-v39
 // @description  Improves JoyChat with additional utilities.
 // @author       NJoyChat Team
 // @match        https://www.joyclub.de/chat/login/
@@ -3108,7 +3108,7 @@ function createQuickSettings() {
 
         function check_string_against_own_username(stringToCheck, username){
             const regexPattern = new RegExp(username)
-            if (regexPattern.test(username)){
+            if (regexPattern.test(stringToCheck)){
                 let audio = document.getElementById('njoy_notification_audio')
                 audio.play()
             }
@@ -3236,7 +3236,7 @@ function createQuickSettings() {
                 return [message]
             }
             if (settings.get('groups').get('general').get('loaded_settings').get('notification_username_mentioned_setting').get('value')) {
-                check_string_against_own_username(message, extract_own_user_from_user_list())
+                check_string_against_own_username(message.textContent, extract_own_user_from_user_list())
             }
 
             return [message]
