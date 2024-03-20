@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         NJoyChat
 // @namespace    https://www.joyclub.de/chat/login/
-// @version      Alpha-v37
+// @version      Alpha-v38
 // @description  Improves JoyChat with additional utilities.
 // @author       NJoyChat Team
 // @match        https://www.joyclub.de/chat/login/
@@ -2056,6 +2056,8 @@ function createQuickSettings() {
             general_settings_group.add_setting(chat_setting_header)
             let notification_sound_setting = new Setting('notification_sound_setting', 'Benachrichtigungston', 'boolean', general_settings_group.get('name'), true, [true, false])
             general_settings_group.add_setting(notification_sound_setting)
+            let notify_on_mention_setting = new Setting('notification_username_mentioned_setting', 'Benachrichtigungston bei Erwähnung', 'boolean', general_settings_group.get('name'), true, [true, false])
+            general_settings_group.add_setting(notify_on_mention_setting)
             let scrollback_buffer_setting = new Setting('scrollback_buffer', 'Gleichzeitig angezeigte Nachrichten', 'string', general_settings_group.get('name'), '50', ['50', '100', '150', 'Infinite'])
             general_settings_group.add_setting(scrollback_buffer_setting)
             let auto_idle_enabled = new Setting('auto_idle_enabled', 'Auto-Anti-Idle', 'boolean', general_settings_group.get('name'), false, [true, false])
@@ -2272,8 +2274,16 @@ function createQuickSettings() {
         }
 
         function load_auto_greetings() {
+            console.log("Loading auto greetings.")
+            console.log("Raw settings:")
+            console.log(settings.get('groups').get('auto_greet').get('loaded_settings').get('auto_greet_editor_setting').get('value'))
+            console.log("Individual greetings:")
             for (const macro of settings.get('groups').get('auto_greet').get('loaded_settings').get('auto_greet_editor_setting').get('value')) {
+                console.log("Raw greeting:")
+                console.log(macro)
                 let auto_greeting = TextAutoGreeting.fromJSON(JSON.parse(macro))
+                console.log("Parsed greeting:")
+                console.log(auto_greeting)
                 auto_greetings.set(auto_greeting.get('name'), auto_greeting)
             }
         }
@@ -2938,9 +2948,11 @@ function createQuickSettings() {
                         if (Array.isArray(message)) {
                             invoke_handler_for_children(message, null, chat_message_ignore_message_handler)
                             invoke_handler_for_children(message, null, chat_user_ignore_message_handler)
+                            invoke_handler_for_children(message, null, chat_message_notification_username_mentioned)
                         } else {
                             chat_message_ignore_message_handler(message, null)
                             chat_user_ignore_message_handler(message, null)
+                            chat_message_notification_username_mentioned(message, null)
                         }
 
                         for (let control_code in individual_control_codes) {
@@ -2983,7 +2995,6 @@ function createQuickSettings() {
                     }
                 }
                 let name_of_joined_user = added_node.querySelector('strong').innerText
-
                 chat_join_auto_greeting_handler(name_of_joined_user, null)
                 chat_join_audio_notification_handler(name_of_joined_user, null)
             }
@@ -3095,21 +3106,40 @@ function createQuickSettings() {
             return false;
         }
 
+        function check_string_against_own_username(stringToCheck, username){
+            const regexPattern = new RegExp(username)
+            if (regexPattern.test(username)){
+                let audio = document.getElementById('njoy_notification_audio')
+                audio.play()
+            }
+        }
+
         function chat_join_auto_greeting_handler(new_user, options) {
+            console.log("Do we have the user?")
             if (auto_greetings.has(new_user)) {
+                console.log("We do.")
                 let auto_greeting = auto_greetings.get(new_user).get('auto_greeting_text')
+                console.log(auto_greetings.get(new_user))
+                console.log("Auto greeting text:")
+                console.log(auto_greeting)
                 let min_delay = settings.get('groups').get('auto_greet').get('loaded_settings').get('auto_greet_options_min_delay').get('value')
                 let max_delay = settings.get('groups').get('auto_greet').get('loaded_settings').get('auto_greet_options_max_delay').get('value')
+                let random_delay = getRandomDelay(min_delay, max_delay)
+                console.log("Chose random delay")
+                console.log(random_delay)
                 setTimeout(function () {
                     say_macro(auto_greeting)
-                }, getRandomDelay(min_delay, max_delay))
+                }, random_delay)
             } else if (settings.get('groups').get('auto_greet').get('loaded_settings').get('general_auto_greet_enabled').get('value')){
+                console.log("We don't but general auto-join greeting is enabled.")
                 let general_auto_greeting = settings.get('groups').get('auto_greet').get('loaded_settings').get('general_auto_greet_message').get('value').replaceAll("%last_join%", new_user)
                 let min_delay = settings.get('groups').get('auto_greet').get('loaded_settings').get('general_auto_greet_options_min_delay').get('value')
                 let max_delay = settings.get('groups').get('auto_greet').get('loaded_settings').get('general_auto_greet_options_max_delay').get('value')
                 setTimeout(function () {
                     say_macro(general_auto_greeting)
                 }, getRandomDelay(min_delay, max_delay))
+            } else {
+                console.log("We don't and general auto join is not enabled.")
             }
         }
 
@@ -3195,6 +3225,18 @@ function createQuickSettings() {
             }
             if (check_string_against_ignore_list(message.nodeValue, settings.get('groups').get('ignore').get('loaded_settings').get('message_ignore_editor_setting').get('value'))) {
                 attachToggleButton(message, 'lol', 'lmao')
+            }
+
+            return [message]
+        }
+
+        function chat_message_notification_username_mentioned(message, options){
+            if (message.nodeType !== Node.TEXT_NODE) {
+                console.log('Text control handler invoked on non text node. Returning.')
+                return [message]
+            }
+            if (settings.get('groups').get('general').get('loaded_settings').get('notification_username_mentioned_setting').get('value')) {
+                check_string_against_own_username(message, extract_own_user_from_user_list())
             }
 
             return [message]
