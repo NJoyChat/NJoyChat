@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         NJoyChat
 // @namespace    https://www.joyclub.de/chat/login/
-// @version      Alpha-v40
+// @version      Alpha-v41
 // @description  Improves JoyChat with additional utilities.
 // @author       NJoyChat Team
 // @match        https://www.joyclub.de/chat/login/
@@ -2895,6 +2895,7 @@ function createQuickSettings() {
                         if (message.nodeType !== Node.TEXT_NODE) {
                             new_chat_content.appendChild(message)
                             new_chat_content.insertBefore(message, new_chat_content.firstChild)
+                            chat_message_notification_username_mentioned(message, null)
                         } else {
                             let text = message.nodeValue
                             if (control_codes === undefined) {
@@ -2923,6 +2924,7 @@ function createQuickSettings() {
                                     } else {
                                         chat_message_ignore_message_handler(possible_child, null)
                                         chat_user_ignore_message_handler(possible_child, null)
+                                        chat_message_notification_username_mentioned(possible_child, null)
                                         new_chat_content.appendChild(possible_child)
                                         new_chat_content.insertBefore(possible_child, new_chat_content.firstChild)
                                     }
@@ -3236,8 +3238,13 @@ function createQuickSettings() {
         function chat_message_notification_username_mentioned(message, options){
             console.log("Mention debugging")
             console.log(message)
-            console.log(message.parentNode)
-            console.log(message.parentNode.className)
+            if (message.parentNode == null){
+                return [message]
+            } else {
+                console.log("This has a parent.")
+                console.log(message.parentNode)
+                console.log(message.parentNode.className)
+            }
             if (message.nodeType !== Node.ELEMENT_NODE || message.nodeName.toLowerCase() !== 'strong' || message.parentNode.className === 'user') {
                 console.log('Element control handler invoked on non element node. Returning.')
                 return [message]
