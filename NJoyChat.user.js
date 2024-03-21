@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         NJoyChat
 // @namespace    https://www.joyclub.de/chat/login/
-// @version      Alpha-v42
+// @version      Alpha-v43
 // @description  Improves JoyChat with additional utilities.
 // @author       NJoyChat Team
 // @match        https://www.joyclub.de/chat/login/
@@ -2267,10 +2267,20 @@ function createQuickSettings() {
 
         function create_audio_elements() {
             let audio_container = document.getElementById('njoy_audio_container')
-            let audio = document.createElement('audio')
-            audio.src = 'https://github.com/NJoyChat/NJoyChat/raw/master/sounds/notification/icq-message.wav'
-            audio.id = 'njoy_notification_audio'
-            audio_container.appendChild(audio)
+            let notification_sound = document.createElement('audio')
+            notification_sound.src = 'https://github.com/NJoyChat/NJoyChat/raw/master/sounds/notification/icq-message.wav'
+            notification_sound.id = 'njoy_notification_audio'
+            audio_container.appendChild(notification_sound)
+
+            let moo_sound = document.createElement('audio')
+            moo_sound.src = 'https://github.com/NJoyChat/NJoyChat/raw/master/sounds/notification/moo.wav'
+            moo_sound.id = 'njoy_easter_egg_moo_audio'
+            audio_container.appendChild(moo_sound)
+
+            let monkey_sound = document.createElement('audio')
+            monkey_sound.src = 'https://github.com/NJoyChat/NJoyChat/raw/master/sounds/notification/monkey.wav'
+            monkey_sound.id = 'njoy_easter_egg_monkey_audio'
+            audio_container.appendChild(monkey_sound)
         }
 
         function load_auto_greetings() {
@@ -2948,6 +2958,7 @@ function createQuickSettings() {
                                         chat_message_ignore_message_handler(possible_child, null)
                                         chat_user_ignore_message_handler(possible_child, null)
                                         chat_message_notification_username_mentioned(possible_child, null)
+                                        chat_message_easter_eggs(possible_child, null)
                                         new_chat_content.appendChild(possible_child)
                                         new_chat_content.insertBefore(possible_child, new_chat_content.firstChild)
                                     }
@@ -2974,10 +2985,12 @@ function createQuickSettings() {
                             invoke_handler_for_children(message, null, chat_message_ignore_message_handler)
                             invoke_handler_for_children(message, null, chat_user_ignore_message_handler)
                             invoke_handler_for_children(message, null, chat_message_notification_username_mentioned)
+                            invoke_handler_for_children(message, null, chat_message_easter_eggs)
                         } else {
                             chat_message_ignore_message_handler(message, null)
                             chat_user_ignore_message_handler(message, null)
                             chat_message_notification_username_mentioned(message, null)
+                            chat_message_easter_eggs(message, null)
                         }
 
                         for (let control_code in individual_control_codes) {
@@ -3259,6 +3272,31 @@ function createQuickSettings() {
             }
 
             return [message]
+        }
+
+        function chat_message_easter_eggs(message, options){
+            chat_message_easter_egg_moo_arschkuh(message, options)
+            chat_message_easter_egg_monkey_wichsaeffchen(message, options)
+        }
+
+        function chat_message_easter_egg_moo_arschkuh(message, options){
+            const regexPattern = new RegExp(".*arschkuh.*", "i")
+            if (regexPattern.test(message)){
+                if (Math.random() > 0.33) {
+                    let audio = document.getElementById('njoy_easter_egg_moo_audio')
+                    audio.play()
+                }
+            }
+        }
+
+        function chat_message_easter_egg_monkey_wichsaeffchen(message, options){
+            const regexPattern = new RegExp(".*wichsäffchen.*", "i")
+            if (regexPattern.test(message)){
+                if (Math.random() > 0.10) {
+                    let audio = document.getElementById('njoy_easter_egg_monkey_audio')
+                    audio.play()
+                }
+            }
         }
 
         function chat_message_njoy_emoji_handler(message, options) {
