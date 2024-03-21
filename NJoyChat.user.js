@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         NJoyChat
 // @namespace    https://www.joyclub.de/chat/login/
-// @version      Alpha-v41
+// @version      Alpha-v42
 // @description  Improves JoyChat with additional utilities.
 // @author       NJoyChat Team
 // @match        https://www.joyclub.de/chat/login/
@@ -2274,16 +2274,16 @@ function createQuickSettings() {
         }
 
         function load_auto_greetings() {
-            console.log("Loading auto greetings.")
-            console.log("Raw settings:")
-            console.log(settings.get('groups').get('auto_greet').get('loaded_settings').get('auto_greet_editor_setting').get('value'))
-            console.log("Individual greetings:")
+            //console.log("Loading auto greetings.")
+            //console.log("Raw settings:")
+            //console.log(settings.get('groups').get('auto_greet').get('loaded_settings').get('auto_greet_editor_setting').get('value'))
+            //console.log("Individual greetings:")
             for (const macro of settings.get('groups').get('auto_greet').get('loaded_settings').get('auto_greet_editor_setting').get('value')) {
-                console.log("Raw greeting:")
-                console.log(macro)
+                //console.log("Raw greeting:")
+                //console.log(macro)
                 let auto_greeting = TextAutoGreeting.fromJSON(JSON.parse(macro))
-                console.log("Parsed greeting:")
-                console.log(auto_greeting)
+                //console.log("Parsed greeting:")
+                //console.log(auto_greeting)
                 auto_greetings.set(auto_greeting.get('name'), auto_greeting)
             }
         }
@@ -2469,6 +2469,19 @@ function createQuickSettings() {
                 joychat_input_box.value = macro_text;
                 pre_submit_modifications()
                 let joychat_send_button = document.querySelectorAll('.send')[0]
+                if (joychat_send_button !== undefined && joychat_send_button !== null) {
+                    joychat_send_button.dispatchEvent(new Event('click', {bubbles: true}))
+                }
+                joychat_input_box.value = already_typed_text
+            }
+        }
+
+        function say_macro_in_specific_chat(macro_text, joychat_input_box) {
+            if (joychat_input_box !== null && joychat_input_box !== undefined) {
+                let already_typed_text = joychat_input_box.value
+                joychat_input_box.value = macro_text;
+                pre_submit_modifications()
+                let joychat_send_button = joychat_input_box.nextSibling
                 if (joychat_send_button !== undefined && joychat_send_button !== null) {
                     joychat_send_button.dispatchEvent(new Event('click', {bubbles: true}))
                 }
@@ -2666,6 +2679,16 @@ function createQuickSettings() {
             }
         }
 
+        function get_first_non_server_and_non_user_joychat_input_box(){
+            for (let joychat_output of document.querySelectorAll('.joychat_output')) {
+
+                let tab_name = joychat_output.previousSibling.lastChild.textContent
+                if (!check_if_tab_is_a_username(tab_name) && tab_name !== 'Server'){
+                    return joychat_output
+                }
+            }
+        }
+
         // This is necessary for custom emojis. NO messages are saved or persisted in any way.
 
         function watch_chat_output_for_change() {
@@ -2692,7 +2715,7 @@ function createQuickSettings() {
                     }
                 }
             })()
-            console.log(document.querySelectorAll('.joychat_output'))
+            //console.log(document.querySelectorAll('.joychat_output'))
             for (let joychat_output of document.querySelectorAll('.joychat_output')) {
 
                 let tab_name = joychat_output.previousSibling.lastChild.textContent
@@ -2776,10 +2799,10 @@ function createQuickSettings() {
             let all_women = []
             let all_couples = []
             let all_users = document.querySelectorAll('#joychat_userlists > ul.userlist > li.channel_user > div.channel_user_info')
-            console.log(all_users)
+            //console.log(all_users)
             if (all_users.length !== 0) {
                 for (let user of all_users) {
-                    console.log(user)
+                    //console.log(user)
                     let gender = user.querySelector('div > j-gender-icon').universalGender
                     switch (gender) {
                         case 1:
@@ -2794,9 +2817,9 @@ function createQuickSettings() {
                     }
                 }
 
-                console.log(all_men)
-                console.log(all_women)
-                console.log(all_couples)
+                //console.log(all_men)
+                //console.log(all_women)
+                //console.log(all_couples)
 
                 if (settings.get('groups').get('ignore').get('loaded_settings').get('ignore_pn_men_setting').get('value')) {
                     for (let man of all_men) {
@@ -2809,12 +2832,12 @@ function createQuickSettings() {
                 }
 
                 if (settings.get('groups').get('ignore').get('loaded_settings').get('ignore_pn_women_setting').get('value')) {
-                    console.log('Women ignored, checking')
+                    //console.log('Women ignored, checking')
                     for (let woman of all_women) {
-                        console.log('Checking: ' + woman.querySelector('span.joychat_user_name').textContent + ' against ' + tab_name)
+                        //console.log('Checking: ' + woman.querySelector('span.joychat_user_name').textContent + ' against ' + tab_name)
                         if (tab_name.includes(woman.querySelector('span.joychat_user_name').textContent)) {
                             if (!check_string_against_ignore_list(tab_name, settings.get('groups').get('ignore').get('loaded_settings').get('pn_whitelist_editor_setting').get('value'))) {
-                                console.log('User: ' + woman.querySelector('span.joychat_user_name').textContent + ' not in whitelist ' + tab_name)
+                                //console.log('User: ' + woman.querySelector('span.joychat_user_name').textContent + ' not in whitelist ' + tab_name)
                                 return true
                             }
                         }
@@ -2838,9 +2861,9 @@ function createQuickSettings() {
         function close_tab(tab_name) {
             let outer_tabs = document.querySelectorAll('.tabs-outer > li > span.name')
             for (let outer_tab of outer_tabs) {
-                console.log('Tab: ' + outer_tab.textContent + ' Tab name: ' + tab_name)
+                //console.log('Tab: ' + outer_tab.textContent + ' Tab name: ' + tab_name)
                 if (outer_tab.textContent.includes(tab_name)) {
-                    console.log(outer_tab.parentElement.querySelector('.glyphicons-remove'))
+                    //console.log(outer_tab.parentElement.querySelector('.glyphicons-remove'))
                     outer_tab.parentElement.querySelector('.glyphicons-remove').click()
                 }
             }
@@ -2861,7 +2884,7 @@ function createQuickSettings() {
                 let auto_idle_text = settings.get('groups').get('general').get('loaded_settings').get('auto_idle_text').get('value')
                 let warning = document.querySelectorAll('#j_growl_container > j-growl[variant="error"]')[0]
                 if (warning.childNodes[0].textContent === '2001 Idle Warnung') {
-                    say_macro(auto_idle_text)
+                    say_macro_in_specific_chat(auto_idle_text, get_first_non_server_and_non_user_joychat_input_box())
                     document.querySelectorAll('#j_growl_container > j-growl[variant="error"]')[0].shadowRoot.querySelector('aside > button').click()
                 }
             }
@@ -2985,7 +3008,7 @@ function createQuickSettings() {
         }
 
         function handle_chat_message_removal(removedNodes) {
-            console.log('lol lmao', removedNodes)
+            //console.log('lol lmao', removedNodes)
         }
 
         function handle_chat_join_addition(added_nodes) {
@@ -3003,7 +3026,7 @@ function createQuickSettings() {
         }
 
         function handle_chat_join_removal(removedNodes) {
-            console.log('lol lmao', removedNodes)
+            //console.log('lol lmao', removedNodes)
         }
 
         /////////////////////////////////////////// HANDLERS ///////////////////////////////////////////////////////////////////
@@ -3051,7 +3074,7 @@ function createQuickSettings() {
             let gradient_settings = parse_gradient_options(options)
             //console.log('Text rainbow message control handler:', message, options)
             if (message.nodeType !== Node.TEXT_NODE) {
-                console.log('Text control handler invoked on non text node. Returning.')
+                //console.log('Text control handler invoked on non text node. Returning.')
                 return [message]
             }
 
@@ -3094,14 +3117,11 @@ function createQuickSettings() {
         }
 
         function check_string_against_ignore_list(stringToCheck, ignore_list) {
-            console.log('Checking: ' + stringToCheck + " against ignore list: " + ignore_list)
+            //console.log('Checking: ' + stringToCheck + " against ignore list: " + ignore_list)
             for (const macro of ignore_list) {
                 let loaded_macro = TextMacro.fromJSON(JSON.parse(macro))
-                console.log(loaded_macro)
                 const regexPattern = new RegExp(loaded_macro.get('macro_text'));
-                console.log(regexPattern)
                 if (regexPattern.test(stringToCheck)) {
-                    console.log('Matched ' + stringToCheck + " against " + regexPattern)
                     return true;
                 }
             }
@@ -3110,9 +3130,6 @@ function createQuickSettings() {
 
         function check_string_against_own_username(stringToCheck, username){
             const regexPattern = new RegExp(".*" + username + ".*", "i")
-            console.log(regexPattern)
-            console.log(stringToCheck)
-            console.log(username)
             if (regexPattern.test(stringToCheck)){
                 let audio = document.getElementById('njoy_notification_audio')
                 audio.play()
@@ -3120,23 +3137,21 @@ function createQuickSettings() {
         }
 
         function chat_join_auto_greeting_handler(new_user, options) {
-            console.log("Do we have the user?")
+            //console.log("Do we have the user?")
             if (auto_greetings.has(new_user)) {
-                console.log("We do.")
+                //console.log("We do.")
                 let auto_greeting = auto_greetings.get(new_user).get('auto_greeting_text')
-                console.log(auto_greetings.get(new_user))
-                console.log("Auto greeting text:")
-                console.log(auto_greeting)
+                //console.log(auto_greetings.get(new_user))
+                //console.log("Auto greeting text:")
+                //console.log(auto_greeting)
                 let min_delay = settings.get('groups').get('auto_greet').get('loaded_settings').get('auto_greet_options_min_delay').get('value')
                 let max_delay = settings.get('groups').get('auto_greet').get('loaded_settings').get('auto_greet_options_max_delay').get('value')
                 let random_delay = getRandomDelay(min_delay, max_delay)
-                console.log("Chose random delay")
-                console.log(random_delay)
                 setTimeout(function () {
                     say_macro(auto_greeting)
                 }, random_delay)
             } else if (settings.get('groups').get('auto_greet').get('loaded_settings').get('general_auto_greet_enabled').get('value')){
-                console.log("We don't but general auto-join greeting is enabled.")
+                //console.log("We don't but general auto-join greeting is enabled.")
                 let general_auto_greeting = settings.get('groups').get('auto_greet').get('loaded_settings').get('general_auto_greet_message').get('value').replaceAll("%last_join%", new_user)
                 let min_delay = settings.get('groups').get('auto_greet').get('loaded_settings').get('general_auto_greet_options_min_delay').get('value')
                 let max_delay = settings.get('groups').get('auto_greet').get('loaded_settings').get('general_auto_greet_options_max_delay').get('value')
@@ -3144,7 +3159,7 @@ function createQuickSettings() {
                     say_macro(general_auto_greeting)
                 }, getRandomDelay(min_delay, max_delay))
             } else {
-                console.log("We don't and general auto join is not enabled.")
+                //console.log("We don't and general auto join is not enabled.")
             }
         }
 
@@ -3208,8 +3223,6 @@ function createQuickSettings() {
         }
 
         function chat_user_ignore_message_handler(message, options) {
-            console.log('Ignore user handler')
-            console.log(message)
             if (message.classList === undefined || !message.classList.contains('user')) {
                 return [message]
             }
@@ -3222,10 +3235,8 @@ function createQuickSettings() {
         }
 
         function chat_message_ignore_message_handler(message, options) {
-            console.log('Ignore handler')
-            console.log(message)
             if (message.nodeType !== Node.TEXT_NODE) {
-                console.log('Text control handler invoked on non text node. Returning.')
+                //console.log('Text control handler invoked on non text node. Returning.')
                 return [message]
             }
             if (check_string_against_ignore_list(message.nodeValue, settings.get('groups').get('ignore').get('loaded_settings').get('message_ignore_editor_setting').get('value'))) {
@@ -3236,22 +3247,13 @@ function createQuickSettings() {
         }
 
         function chat_message_notification_username_mentioned(message, options){
-            console.log("Mention debugging")
-            console.log(message)
             if (message.parentNode == null){
                 return [message]
-            } else {
-                console.log("This has a parent.")
-                console.log(message.parentNode)
-                console.log(message.parentNode.className)
             }
             if (message.nodeType !== Node.ELEMENT_NODE || message.nodeName.toLowerCase() !== 'strong' || message.parentNode.className === 'user') {
-                console.log('Element control handler invoked on non element node. Returning.')
+                //console.log('Element control handler invoked on non element node. Returning.')
                 return [message]
             }
-            console.log("Node is valid:")
-            console.log(message)
-            console.log("This was a valid node.")
             if (settings.get('groups').get('general').get('loaded_settings').get('notification_username_mentioned_setting').get('value')) {
                 check_string_against_own_username(message.innerText, extract_own_user_from_user_list())
             }
@@ -3261,7 +3263,7 @@ function createQuickSettings() {
 
         function chat_message_njoy_emoji_handler(message, options) {
             if (message.nodeType !== Node.TEXT_NODE) {
-                console.log('Text control handler invoked on non text node. Returning.')
+                //console.log('Text control handler invoked on non text node. Returning.')
                 return [message]
             }
             if (settings.get('groups').get('appearance').get('loaded_settings').get('disable_custom_emoji_globally').get('value')) {
@@ -3279,7 +3281,7 @@ function createQuickSettings() {
 
         function chat_message_njoy_image_handler(message, options) {
             if (message.nodeType !== Node.TEXT_NODE) {
-                console.log('Text control handler invoked on non text node. Returning.')
+                //console.log('Text control handler invoked on non text node. Returning.')
                 return [message]
             }
 
@@ -3585,7 +3587,7 @@ function createQuickSettings() {
             } else {
                 active_sinebow = new Map()
                 precomputed_sinebows.set(gradient_settings.toString(), active_sinebow)
-                console.log(precomputed_sinebows)
+                //console.log(precomputed_sinebows)
             }
             /*if (cache_accesses.has(text_to_rainbowify)) {
                 let access = cache_accesses.get(text_to_rainbowify)
@@ -3623,7 +3625,7 @@ function createQuickSettings() {
             let phase3 = parseFloat(gradient_settings[11])
             let repetition = parseFloat(gradient_settings[12])
             let gradient_speed = parseFloat(gradient_settings[13])
-            console.log('Gradient Settings decoded:', gradient_settings)
+            //console.log('Gradient Settings decoded:', gradient_settings)
 
             let active_sinebow
             let required_colors = Math.ceil(total / repetition);
