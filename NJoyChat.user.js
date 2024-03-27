@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         NJoyChat
 // @namespace    https://www.joyclub.de/chat/login/
-// @version      Alpha-v43
+// @version      Alpha-v44
 // @description  Improves JoyChat with additional utilities.
 // @author       NJoyChat Team
 // @match        https://www.joyclub.de/chat/login/
@@ -2156,6 +2156,15 @@ function createQuickSettings() {
             let auto_greet_options_maximum_delay = new Setting('auto_greet_options_max_delay', 'Auto-Begrüßungs maximale Verzögerung', 'string', auto_greet_settings_group.get('name'), '5', ['2', '3', '4', '5'])
             auto_greet_settings_group.add_setting(auto_greet_options_maximum_delay)
 
+            let age_limit_header = new Setting('age_limit_header', 'Alters-Limit Benachrichtigung', 'section_header', auto_greet_settings_group.get('name'), 'Alters-Limit Benachrichtigung', ['Alters-Limit Benachrichtigung'])
+            auto_greet_settings_group.add_setting(age_limit_header)
+            let age_limit_notification = new Setting('max_age_limit_notification', 'Alters-Limit Benachrichtigung an/aus', 'boolean', auto_greet_settings_group.get('name'), true, [true, false])
+            auto_greet_settings_group.add_setting(age_limit_notification)
+            let age_limit_notification_needs_key = new Setting('max_age_limit_notification_only_if_keyholder', 'Alters-Limit Benachrichtigung nur für Schlüsselhalter', 'boolean', auto_greet_settings_group.get('name'), true, [true, false])
+            auto_greet_settings_group.add_setting(age_limit_notification_needs_key)
+            let age_limit_value = new Setting('max_age_limit_value', 'Maximales Alter', 'string', auto_greet_settings_group.get('name'), '40', ['40', '41', '42', '45'])
+            auto_greet_settings_group.add_setting(age_limit_value)
+
             let join_notification_editor_header = new Setting('auto_join_notification_header', "Auto-Notification bei Join", 'section_header', auto_greet_settings_group.get('name'), "Auto-Notification bei Join", ["Auto-Notification bei Join"])
             auto_greet_settings_group.add_setting(join_notification_editor_header)
             let join_notification_user_name_choice = new Setting('auto_join_notification_setting_user_name_choice', 'Users in channel', 'multi_choice_user_names', auto_greet_settings_group.get('name'), 'Users in channel', ['Users in channel'])
@@ -2271,6 +2280,11 @@ function createQuickSettings() {
             notification_sound.src = 'https://github.com/NJoyChat/NJoyChat/raw/master/sounds/notification/icq-message.wav'
             notification_sound.id = 'njoy_notification_audio'
             audio_container.appendChild(notification_sound)
+
+            let age_limit_warning_sound = document.createElement('audio')
+            age_limit_warning_sound.src = 'https://github.com/NJoyChat/NJoyChat/raw/master/sounds/notification/alarm.wav'
+            age_limit_warning_sound.id = 'njoy_age_limit_warning_audio'
+            audio_container.appendChild(age_limit_warning_sound)
 
             let moo_sound = document.createElement('audio')
             moo_sound.src = 'https://github.com/NJoyChat/NJoyChat/raw/master/sounds/notification/moo.wav'
@@ -2691,7 +2705,6 @@ function createQuickSettings() {
 
         function get_first_non_server_and_non_user_joychat_input_box(){
             for (let joychat_output of document.querySelectorAll('.joychat_output')) {
-
                 let tab_name = joychat_output.previousSibling.lastChild.textContent
                 if (!check_if_tab_is_a_username(tab_name) && tab_name !== 'Server'){
                     return joychat_output
@@ -2729,6 +2742,13 @@ function createQuickSettings() {
             for (let joychat_output of document.querySelectorAll('.joychat_output')) {
 
                 let tab_name = joychat_output.previousSibling.lastChild.textContent
+
+                if (tab_name === "Young People"){
+                    if (Math.random() > 0.1){
+                        tab_name = "Poung Yeople"
+                    }
+                }
+
                 if (check_string_against_ignore_list(tab_name, settings.get('groups').get('ignore').get('loaded_settings').get('user_ignore_editor_setting').get('value'))) {
                     close_tab(tab_name)
                     break
@@ -3035,6 +3055,7 @@ function createQuickSettings() {
                 let name_of_joined_user = added_node.querySelector('strong').innerText
                 chat_join_auto_greeting_handler(name_of_joined_user, null)
                 chat_join_audio_notification_handler(name_of_joined_user, null)
+                chat_join_age_limit_warning_handler(name_of_joined_user, null)
             }
         }
 
@@ -3116,7 +3137,7 @@ function createQuickSettings() {
         }
 
         function check_if_self_has_key() {
-            return !(document.querySelector('li.isme > div.channel_user_info > span.joychat_user_name') === undefined)
+            return !(document.querySelector('li.isme > div.channel_user_icons > span.joyicons-key') === undefined)
         }
 
         function extract_age_from_userlist_for_username(username_to_extract) {
@@ -3124,9 +3145,26 @@ function createQuickSettings() {
             for (let user_info of all_user_infos) {
                 let username = user_info.querySelector('span.joychat_user_name').innerText
                 if (username === username_to_extract) {
-                    return user_info.querySelector('div:nth-child(2) > span:nth-child(1)').innerText.split(' ')[0]
+                    let age = user_info.querySelector('div:nth-child(2) > span:nth-child(1)').innerText.split(' ')[0]
+                    if (username.includes('(m)')) {
+                        return splitNumbersFromString(age)[0];
+                    } else if (username.includes('(w)')){
+                        return splitNumbersFromString(age)[1]
+                    } else if (age.includes('+')){
+                        let combined_ages = splitNumbersFromString(age)
+                        return (combined_ages[0] + combined_ages[1]) / 2
+                    } else {
+                        return parseInt(age)
+                    }
                 }
             }
+        }
+
+        function splitNumbersFromString(str) {
+            let numbers = str.split('+');
+            let num1 = parseInt(numbers[0]);
+            let num2 = parseInt(numbers[1]);
+            return [num1, num2];
         }
 
         function check_string_against_ignore_list(stringToCheck, ignore_list) {
@@ -3173,6 +3211,21 @@ function createQuickSettings() {
                 }, getRandomDelay(min_delay, max_delay))
             } else {
                 //console.log("We don't and general auto join is not enabled.")
+            }
+        }
+
+        function chat_join_age_limit_warning_handler(new_user, options) {
+            if (settings.get('groups').get('auto_greet').get('loaded_settings').get('max_age_limit_notification').get('value')) {
+                let age = extract_age_from_userlist_for_username(new_user)
+                if (age > settings.get('groups').get('auto_greet').get('loaded_settings').get('max_age_limit_value').get('value')) {
+                    if (settings.get('groups').get('auto_greet').get('loaded_settings').get('max_age_limit_notification_only_if_keyholder').get('value')){
+                        if (!check_if_self_has_key()){
+                            return
+                        }
+                    }
+                    let audio = document.getElementById('njoy_age_limit_warning_audio')
+                    audio.play()
+                }
             }
         }
 
