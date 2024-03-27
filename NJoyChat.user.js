@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         NJoyChat
 // @namespace    https://www.joyclub.de/chat/login/
-// @version      Alpha-v44
+// @version      Alpha-v45
 // @description  Improves JoyChat with additional utilities.
 // @author       NJoyChat Team
 // @match        https://www.joyclub.de/chat/login/
@@ -3055,7 +3055,10 @@ function createQuickSettings() {
                 let name_of_joined_user = added_node.querySelector('strong').innerText
                 chat_join_auto_greeting_handler(name_of_joined_user, null)
                 chat_join_audio_notification_handler(name_of_joined_user, null)
-                chat_join_age_limit_warning_handler(name_of_joined_user, null)
+                setTimeout(function () {
+                    chat_join_age_limit_warning_handler(name_of_joined_user, null)
+                }, 2500)
+
             }
         }
 
@@ -3145,11 +3148,11 @@ function createQuickSettings() {
             for (let user_info of all_user_infos) {
                 let username = user_info.querySelector('span.joychat_user_name').innerText
                 if (username === username_to_extract) {
-                    let age = user_info.querySelector('div:nth-child(2) > span:nth-child(1)').innerText.split(' ')[0]
+                    let age = user_info.querySelector('div.channel_user_info > div > span').innerText
                     if (username.includes('(m)')) {
-                        return splitNumbersFromString(age)[0];
+                        return splitNumbersFromString(age)[1];
                     } else if (username.includes('(w)')){
-                        return splitNumbersFromString(age)[1]
+                        return splitNumbersFromString(age)[0]
                     } else if (age.includes('+')){
                         let combined_ages = splitNumbersFromString(age)
                         return (combined_ages[0] + combined_ages[1]) / 2
