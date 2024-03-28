@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         NJoyChat
 // @namespace    https://www.joyclub.de/chat/login/
-// @version      Alpha-v46
+// @version      Alpha-v47
 // @description  Improves JoyChat with additional utilities.
 // @author       NJoyChat Team
 // @match        https://www.joyclub.de/chat/login/
@@ -3147,7 +3147,7 @@ function createQuickSettings() {
         }
 
         function check_if_self_has_key() {
-            return !(document.querySelector('li.isme > div.channel_user_icons > span.joyicons-key') === undefined)
+            return (document.querySelector('li.isme > div.channel_user_icons > span.joyicons-key') !== null)
         }
 
         function extract_age_from_userlist_for_username(username_to_extract) {
