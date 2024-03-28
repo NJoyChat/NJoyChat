@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         NJoyChat
 // @namespace    https://www.joyclub.de/chat/login/
-// @version      Alpha-v45
+// @version      Alpha-v46
 // @description  Improves JoyChat with additional utilities.
 // @author       NJoyChat Team
 // @match        https://www.joyclub.de/chat/login/
@@ -2500,7 +2500,9 @@ function createQuickSettings() {
             }
         }
 
-        function say_macro_in_specific_chat(macro_text, joychat_input_box) {
+        function say_macro_in_specific_chat(macro_text, desired_tab_toggle_button, previous_tab_toggle_button) {
+            desired_tab_toggle_button.dispatchEvent(new Event('click', {bubbles: true}))
+            let joychat_input_box = document.querySelectorAll('#joychat_input_text')[0]
             if (joychat_input_box !== null && joychat_input_box !== undefined) {
                 let already_typed_text = joychat_input_box.value
                 joychat_input_box.value = macro_text;
@@ -2511,6 +2513,7 @@ function createQuickSettings() {
                 }
                 joychat_input_box.value = already_typed_text
             }
+            previous_tab_toggle_button.dispatchEvent(new Event('click', {bubbles: true}))
         }
 
         function get_key_for_auto_greeting_name(auto_greeting_name) {
@@ -2703,11 +2706,15 @@ function createQuickSettings() {
             }
         }
 
+        function get_currently_open_tab_toggle_button(){
+            return document.querySelector("div#joychat_output_container > div.content > div.open > h3")
+        }
+
         function get_first_non_server_and_non_user_joychat_input_box(){
             for (let joychat_output of document.querySelectorAll('.joychat_output')) {
                 let tab_name = joychat_output.previousSibling.lastChild.textContent
                 if (!check_if_tab_is_a_username(tab_name) && tab_name !== 'Server'){
-                    return joychat_output
+                    return joychat_output.previousSibling
                 }
             }
         }
@@ -2822,6 +2829,7 @@ function createQuickSettings() {
                     return true
                 }
             }
+            return false
         }
 
         function check_if_gender_is_ignored_for_private_message(tab_name) {
@@ -2832,7 +2840,6 @@ function createQuickSettings() {
             //console.log(all_users)
             if (all_users.length !== 0) {
                 for (let user of all_users) {
-                    //console.log(user)
                     let gender = user.querySelector('div > j-gender-icon').universalGender
                     switch (gender) {
                         case 1:
@@ -2914,7 +2921,7 @@ function createQuickSettings() {
                 let auto_idle_text = settings.get('groups').get('general').get('loaded_settings').get('auto_idle_text').get('value')
                 let warning = document.querySelectorAll('#j_growl_container > j-growl[variant="error"]')[0]
                 if (warning.childNodes[0].textContent === '2001 Idle Warnung') {
-                    say_macro_in_specific_chat(auto_idle_text, get_first_non_server_and_non_user_joychat_input_box())
+                    say_macro_in_specific_chat(auto_idle_text, get_first_non_server_and_non_user_joychat_input_box(), get_currently_open_tab_toggle_button())
                     document.querySelectorAll('#j_growl_container > j-growl[variant="error"]')[0].shadowRoot.querySelector('aside > button').click()
                 }
             }
